@@ -1,0 +1,9 @@
+### Login
+POST http://localhost:5173/inventario-simple/macros/s/1/exec
+Content-Type: text/plain
+
+{
+  "accion": "login",
+  "username": "admin",
+  "password": "TU_CONTRASEÑA_AQUI"
+}

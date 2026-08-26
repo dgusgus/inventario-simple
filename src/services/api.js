@@ -1,6 +1,44 @@
 // src/services/api.js
+import { limpiarSesion, guardarSesion, getToken } from "./auth.js";
 
 const API_URL = "https://script.google.com/macros/s/AKfycbw0I6cJqNlIVbwMsRjNSDF1ecWbUIMzG7FXxuPwxm1wKSK-L0HYiBqhCH-Ttzd6JN9csQ/exec";
+
+// Wrapper central para peticiones autenticadas: detecta sesión inválida en un solo lugar
+async function postAutenticado(body) {
+  const res = await fetch(API_URL, {
+    method: "POST",
+    headers: { "Content-Type": "text/plain" },
+    body: JSON.stringify({ ...body, token: getToken() }),
+  });
+  const json = await res.json();
+
+  if (json.error && json.error.includes("Sesión inválida")) {
+    limpiarSesion();
+    throw new Error("Tu sesión expiró. Vuelve a iniciar sesión.");
+  }
+  if (json.error) throw new Error(json.error);
+  return json;
+}
+
+async function login(username, password) {
+  const res = await fetch(API_URL, {
+    method: "POST",
+    headers: { "Content-Type": "text/plain" },
+    body: JSON.stringify({ accion: "login", username, password }),
+  });
+  const json = await res.json();
+  if (json.error) throw new Error(json.error);
+  guardarSesion(json.token, json.username);
+  return json;
+}
+
+async function logout() {
+  try {
+    await postAutenticado({ accion: "logout" });
+  } finally {
+    limpiarSesion();
+  }
+}
 
 async function getProductos() {
   const res = await fetch(`${API_URL}?tipo=productos`);
@@ -17,62 +55,26 @@ async function getMovimientos() {
 }
 
 async function registrarMovimiento(movimiento) {
-  const res = await fetch(API_URL, {
-    method: "POST",
-    headers: { "Content-Type": "text/plain" },
-    body: JSON.stringify({ accion: "registrar_movimiento", ...movimiento }),
-  });
-  const json = await res.json();
-  if (json.error) throw new Error(json.error);
-  return json;
+  return postAutenticado({ accion: "registrar_movimiento", ...movimiento });
 }
-
 async function crearProducto(producto) {
-  const res = await fetch(API_URL, {
-    method: "POST",
-    headers: { "Content-Type": "text/plain" },
-    body: JSON.stringify({ accion: "crear_producto", ...producto }),
-  });
-  const json = await res.json();
-  if (json.error) throw new Error(json.error);
-  return json;
+  return postAutenticado({ accion: "crear_producto", ...producto });
 }
-
 async function editarProducto(producto_id, cambios) {
-  const res = await fetch(API_URL, {
-    method: "POST",
-    headers: { "Content-Type": "text/plain" },
-    body: JSON.stringify({ accion: "editar_producto", producto_id, ...cambios }),
-  });
-  const json = await res.json();
-  if (json.error) throw new Error(json.error);
-  return json;
+  return postAutenticado({ accion: "editar_producto", producto_id, ...cambios });
 }
-
 async function desactivarProducto(producto_id) {
-  const res = await fetch(API_URL, {
-    method: "POST",
-    headers: { "Content-Type": "text/plain" },
-    body: JSON.stringify({ accion: "desactivar_producto", producto_id }),
-  });
-  const json = await res.json();
-  if (json.error) throw new Error(json.error);
-  return json;
+  return postAutenticado({ accion: "desactivar_producto", producto_id });
 }
-
 async function activarProducto(producto_id) {
-  const res = await fetch(API_URL, {
-    method: "POST",
-    headers: { "Content-Type": "text/plain" },
-    body: JSON.stringify({ accion: "activar_producto", producto_id }),
-  });
-  const json = await res.json();
-  if (json.error) throw new Error(json.error);
-  return json;
+  return postAutenticado({ accion: "activar_producto", producto_id });
+}
+async function crearUsuario(username, password) {
+  return postAutenticado({ accion: "crear_usuario", username, password });
 }
 
 export default {
   getProductos, getMovimientos, registrarMovimiento,
-  crearProducto, editarProducto, desactivarProducto,
-  activarProducto, // nuevo
+  crearProducto, editarProducto, desactivarProducto, activarProducto,
+  login, logout, crearUsuario,
 };
