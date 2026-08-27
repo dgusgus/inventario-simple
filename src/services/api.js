@@ -1,5 +1,5 @@
 // src/services/api.js
-import { limpiarSesion, guardarSesion, getToken } from "./auth.js";
+import { limpiarSesion, guardarSesion, getToken } from "./token.js";
 
 const API_URL = "https://script.google.com/macros/s/AKfycbw0I6cJqNlIVbwMsRjNSDF1ecWbUIMzG7FXxuPwxm1wKSK-L0HYiBqhCH-Ttzd6JN9csQ/exec";
 
@@ -14,6 +14,9 @@ async function postAutenticado(body) {
 
   if (json.error && json.error.includes("Sesión inválida")) {
     limpiarSesion();
+    // Evento global: el store de Pinia (stores/auth.js) escucha esto en main.ts
+    // para actualizar su estado reactivo, ya que api.js no depende de Vue/Pinia.
+    window.dispatchEvent(new Event("sesion-expirada"));
     throw new Error("Tu sesión expiró. Vuelve a iniciar sesión.");
   }
   if (json.error) throw new Error(json.error);

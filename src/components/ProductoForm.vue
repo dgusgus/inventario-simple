@@ -1,12 +1,13 @@
 <script setup>
 import { ref, watch } from "vue";
-import api from "../services/api.js";
+import { useProductosStore } from "../stores/productos.js";
 
 const props = defineProps({
   producto: { type: Object, default: null }, // null = modo crear, objeto = modo editar
 });
 const emit = defineEmits(["guardado", "cerrar"]);
 
+const store = useProductosStore();
 const esEdicion = ref(!!props.producto);
 
 const form = ref({
@@ -42,9 +43,9 @@ async function guardar() {
     if (esEdicion.value) {
       // No mandamos stock_actual: ese campo no es editable, como definimos en el backend
       const { stock_actual, ...cambios } = form.value;
-      await api.editarProducto(props.producto.id, cambios);
+      await store.editar(props.producto.id, cambios);
     } else {
-      await api.crearProducto(form.value);
+      await store.crear(form.value);
     }
     emit("guardado");
   } catch (e) {

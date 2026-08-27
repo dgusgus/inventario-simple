@@ -1,6 +1,6 @@
 <script setup>
 import { ref } from "vue";
-import api from "@/services/api.js";
+import api from "../services/api.js";
 
 const username = ref("");
 const password = ref("");
