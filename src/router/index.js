@@ -1,6 +1,7 @@
 // src/router/index.js
 import { createRouter, createWebHashHistory } from "vue-router";
 import { useAuthStore } from "../stores/auth.js";
+import { useGimnasioAuthStore } from "../stores/gimnasioAuth.js";
 
 // Cada vista se carga con import() dinámico: el bundle inicial no
 // incluye el código de Dashboard/Historial/etc. hasta que el usuario
@@ -38,6 +39,34 @@ const routes = [
     name: "nuevo-usuario",
     component: () => import("../views/UsuariosView.vue"),
   },
+
+  // --- Módulo gimnasio: login y auth propios, separados de inventario.
+  // meta.publica: true para que el guard de inventario (más abajo) los
+  // deje pasar sin pedir el login de Sheets.
+  {
+    path: "/gimnasio/login",
+    name: "gimnasio-login",
+    component: () => import("../views/gimnasio/LoginView.vue"),
+    meta: { publica: true },
+  },
+  {
+    path: "/gimnasio/clientes",
+    name: "gimnasio-clientes",
+    component: () => import("../views/gimnasio/ClientesView.vue"),
+    meta: { publica: true, requiereAuthGimnasio: true },
+  },
+  {
+    path: "/gimnasio/membresias",
+    name: "gimnasio-membresias",
+    component: () => import("../views/gimnasio/MembresiasView.vue"),
+    meta: { publica: true, requiereAuthGimnasio: true },
+  },
+  {
+    path: "/gimnasio/pagos",
+    name: "gimnasio-pagos",
+    component: () => import("../views/gimnasio/PagosView.vue"),
+    meta: { publica: true, requiereAuthGimnasio: true },
+  },
 ];
 
 const router = createRouter({
@@ -47,8 +76,7 @@ const router = createRouter({
   routes,
 });
 
-// Guarda de navegación única: reemplaza la lógica repartida que había
-// entre App.vue (v-if de LoginView) y cada componente.
+// Guarda de navegación de inventario (login con Sheets/Apps Script)
 router.beforeEach((to) => {
   const auth = useAuthStore();
 
@@ -57,6 +85,18 @@ router.beforeEach((to) => {
   }
   if (to.name === "login" && auth.autenticado) {
     return { name: "productos" };
+  }
+});
+
+// Guarda de navegación del gimnasio (login propio, JWT del backend Node)
+router.beforeEach((to) => {
+  const authGimnasio = useGimnasioAuthStore();
+
+  if (to.meta.requiereAuthGimnasio && !authGimnasio.estaAutenticado) {
+    return { name: "gimnasio-login" };
+  }
+  if (to.name === "gimnasio-login" && authGimnasio.estaAutenticado) {
+    return { name: "gimnasio-clientes" };
   }
 });
 
