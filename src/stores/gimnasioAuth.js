@@ -2,13 +2,14 @@ import { defineStore } from "pinia";
 import { ref, computed } from "vue";
 import apiGimnasio from "../services/api-gimnasio";
 
-// Token propio, guardado con otra key para no chocar con el
-// token del login de Apps Script (inventario).
-const STORAGE_KEY = "gimnasio_token";
+// Token y usuario propios, guardados con otra key para no chocar con el
+// login de Apps Script (inventario).
+const TOKEN_KEY = "gimnasio_token";
+const USUARIO_KEY = "gimnasio_usuario";
 
 export const useGimnasioAuthStore = defineStore("gimnasioAuth", () => {
-  const token = ref(localStorage.getItem(STORAGE_KEY) || null);
-  const usuario = ref(null);
+  const token = ref(localStorage.getItem(TOKEN_KEY) || null);
+  const usuario = ref(JSON.parse(localStorage.getItem(USUARIO_KEY) || "null"));
 
   const estaAutenticado = computed(() => !!token.value);
   const rol = computed(() => usuario.value?.rol ?? null);
@@ -20,13 +21,15 @@ export const useGimnasioAuthStore = defineStore("gimnasioAuth", () => {
     });
     token.value = data.token;
     usuario.value = data.usuario;
-    localStorage.setItem(STORAGE_KEY, data.token);
+    localStorage.setItem(TOKEN_KEY, data.token);
+    localStorage.setItem(USUARIO_KEY, JSON.stringify(data.usuario));
   }
 
   function logout() {
     token.value = null;
     usuario.value = null;
-    localStorage.removeItem(STORAGE_KEY);
+    localStorage.removeItem(TOKEN_KEY);
+    localStorage.removeItem(USUARIO_KEY);
   }
 
   return { token, usuario, estaAutenticado, rol, login, logout };

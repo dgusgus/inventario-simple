@@ -67,6 +67,12 @@ const routes = [
     component: () => import("../views/gimnasio/PagosView.vue"),
     meta: { publica: true, requiereAuthGimnasio: true },
   },
+  {
+    path: "/gimnasio/instructores",
+    name: "gimnasio-instructores",
+    component: () => import("../views/gimnasio/InstructoresView.vue"),
+    meta: { publica: true, requiereAuthGimnasio: true },
+  },
 ];
 
 const router = createRouter({

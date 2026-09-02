@@ -1,5 +1,5 @@
 import axios from "axios";
-import { useGimnasioAuthStore } from "../stores/gimnasioAuth";
+import { useGimnasioAuthStore } from "../stores/gimnasioAuth.js";
 
 // Distinto del cliente que le habla a Apps Script: este apunta al
 // backend Node/Express/Prisma desplegado en Railway.
