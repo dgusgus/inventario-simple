@@ -56,9 +56,27 @@ const routes = [
     meta: { publica: true, requiereAuthGimnasio: true },
   },
   {
+    path: "/gimnasio/planes",
+    name: "gimnasio-planes",
+    component: () => import("../views/gimnasio/PlanesView.vue"),
+    meta: { publica: true, requiereAuthGimnasio: true },
+  },
+  {
     path: "/gimnasio/membresias",
     name: "gimnasio-membresias",
     component: () => import("../views/gimnasio/MembresiasView.vue"),
+    meta: { publica: true, requiereAuthGimnasio: true },
+  },
+  {
+    path: "/gimnasio/horarios",
+    name: "gimnasio-horarios",
+    component: () => import("../views/gimnasio/HorariosView.vue"),
+    meta: { publica: true, requiereAuthGimnasio: true },
+  },
+  {
+    path: "/gimnasio/asistencia",
+    name: "gimnasio-asistencia",
+    component: () => import("../views/gimnasio/AsistenciaView.vue"),
     meta: { publica: true, requiereAuthGimnasio: true },
   },
   {
@@ -71,6 +89,18 @@ const routes = [
     path: "/gimnasio/instructores",
     name: "gimnasio-instructores",
     component: () => import("../views/gimnasio/InstructoresView.vue"),
+    meta: { publica: true, requiereAuthGimnasio: true },
+  },
+  {
+    path: "/gimnasio/visitas",
+    name: "gimnasio-visitas",
+    component: () => import("../views/gimnasio/VisitasView.vue"),
+    meta: { publica: true, requiereAuthGimnasio: true },
+  },
+  {
+    path: "/gimnasio/sueldos",
+    name: "gimnasio-sueldos",
+    component: () => import("../views/gimnasio/SueldosView.vue"),
     meta: { publica: true, requiereAuthGimnasio: true },
   },
 ];

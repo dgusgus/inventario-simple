@@ -13,18 +13,37 @@ function logout() {
 
 <template>
   <div class="navbar bg-base-100 shadow mb-4">
-    <div class="flex-1 gap-1">
+    <div class="flex-1 gap-1 flex-wrap">
       <router-link :to="{ name: 'gimnasio-clientes' }" class="btn btn-ghost btn-sm">
         Clientes
       </router-link>
+      <router-link :to="{ name: 'gimnasio-planes' }" class="btn btn-ghost btn-sm">
+        Planes
+      </router-link>
       <router-link :to="{ name: 'gimnasio-membresias' }" class="btn btn-ghost btn-sm">
         Membresías
+      </router-link>
+      <router-link :to="{ name: 'gimnasio-horarios' }" class="btn btn-ghost btn-sm">
+        Horarios
+      </router-link>
+      <router-link :to="{ name: 'gimnasio-asistencia' }" class="btn btn-ghost btn-sm">
+        Asistencia
       </router-link>
       <router-link :to="{ name: 'gimnasio-pagos' }" class="btn btn-ghost btn-sm">
         Pagos
       </router-link>
       <router-link :to="{ name: 'gimnasio-instructores' }" class="btn btn-ghost btn-sm">
         Instructores
+      </router-link>
+      <router-link :to="{ name: 'gimnasio-visitas' }" class="btn btn-ghost btn-sm">
+        Check-in
+      </router-link>
+      <router-link
+        v-if="auth.rol === 'ADMIN'"
+        :to="{ name: 'gimnasio-sueldos' }"
+        class="btn btn-ghost btn-sm"
+      >
+        Sueldos
       </router-link>
     </div>
     <div class="flex-none flex items-center gap-3">

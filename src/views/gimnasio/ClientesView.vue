@@ -106,12 +106,20 @@ onMounted(cargarClientes);
               </span>
             </td>
             <td>
-              <router-link
-                :to="{ name: 'gimnasio-membresias', query: { clienteId: c.id } }"
-                class="link link-primary text-sm"
-              >
-                Gestionar membresía
-              </router-link>
+              <div class="flex flex-col gap-1">
+                <router-link
+                  :to="{ name: 'gimnasio-membresias', query: { clienteId: c.id } }"
+                  class="link link-primary text-sm"
+                >
+                  Gestionar membresía
+                </router-link>
+                <router-link
+                  :to="{ name: 'gimnasio-asistencia', query: { clienteId: c.id } }"
+                  class="link link-primary text-sm"
+                >
+                  Inscribir a horario
+                </router-link>
+              </div>
             </td>
           </tr>
           <tr v-if="clientesFiltrados.length === 0">
