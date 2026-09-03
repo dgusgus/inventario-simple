@@ -17,10 +17,10 @@ const DIAS_LABEL = {
 };
 
 const ESTADOS = [
-  { valor: "PRESENTE", label: "Presente", clase: "btn-success" },
-  { valor: "TARDANZA", label: "Tardanza", clase: "btn-warning" },
-  { valor: "AUSENTE", label: "Ausente", clase: "btn-error" },
-  { valor: "JUSTIFICADO", label: "Justificado", clase: "btn-info" },
+  { valor: "PRESENTE", label: "Presente", claseActiva: "btn-success", claseSuave: "btn-soft btn-success" },
+  { valor: "TARDANZA", label: "Tardanza", claseActiva: "btn-warning", claseSuave: "btn-soft btn-warning" },
+  { valor: "AUSENTE", label: "Ausente", claseActiva: "btn-error", claseSuave: "btn-soft btn-error" },
+  { valor: "JUSTIFICADO", label: "Justificado", claseActiva: "btn-info", claseSuave: "btn-soft btn-info" },
 ];
 
 function hoyISO() {
@@ -175,9 +175,9 @@ watch([horarioId, fecha], cargarRoster);
     <h1 class="text-xl font-semibold">Inscripciones y asistencia</h1>
 
     <div class="flex flex-wrap gap-3 items-end">
-      <label class="form-control">
+      <label class="form-control flex-1 min-w-[10rem]">
         <span class="label-text mb-1">Horario</span>
-        <select v-model="horarioId" class="select select-bordered" :disabled="cargandoHorarios">
+        <select v-model="horarioId" class="select select-bordered w-full" :disabled="cargandoHorarios">
           <option v-for="h in horarios" :key="h.id" :value="h.id">
             {{ etiquetaHorario(h) }}
           </option>
@@ -223,45 +223,40 @@ watch([horarioId, fecha], cargarRoster);
       <span class="loading loading-spinner loading-lg"></span>
     </div>
 
-    <div v-else class="overflow-x-auto">
-      <table class="table table-zebra">
-        <thead>
-          <tr>
-            <th>Alumno</th>
-            <th>Asistencia de {{ fecha }}</th>
-            <th></th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr v-for="item in roster" :key="item.inscripcionId">
-            <td>{{ item.cliente.nombre }}</td>
-            <td>
-              <div class="flex flex-wrap gap-1">
-                <button
-                  v-for="e in ESTADOS"
-                  :key="e.valor"
-                  class="btn btn-xs"
-                  :class="item.asistencia?.estado === e.valor ? e.clase : 'btn-outline'"
-                  :disabled="marcandoId === item.inscripcionId"
-                  @click="marcar(item, e.valor)"
-                >
-                  {{ e.label }}
-                </button>
-              </div>
-            </td>
-            <td>
-              <button class="btn btn-ghost btn-xs" @click="cancelarInscripcion(item)">
-                Dar de baja
-              </button>
-            </td>
-          </tr>
-          <tr v-if="roster.length === 0">
-            <td colspan="3" class="text-center opacity-60 py-6">
-              No hay alumnos inscritos en este horario.
-            </td>
-          </tr>
-        </tbody>
-      </table>
+    <!-- Una tarjeta por alumno: nombre arriba, botones de estado grandes abajo
+         (pensado para marcar con el pulgar desde el celular) -->
+    <div v-else class="flex flex-col gap-3">
+      <div
+        v-for="item in roster"
+        :key="item.inscripcionId"
+        class="card bg-base-100 shadow border border-base-200"
+      >
+        <div class="card-body p-4 gap-3">
+          <div class="flex items-center justify-between gap-2">
+            <p class="font-semibold">{{ item.cliente.nombre }}</p>
+            <button class="btn btn-ghost btn-xs text-error" @click="cancelarInscripcion(item)">
+              Dar de baja
+            </button>
+          </div>
+
+          <div class="grid grid-cols-2 gap-2">
+            <button
+              v-for="e in ESTADOS"
+              :key="e.valor"
+              class="btn btn-sm"
+              :class="item.asistencia?.estado === e.valor ? e.claseActiva : e.claseSuave"
+              :disabled="marcandoId === item.inscripcionId"
+              @click="marcar(item, e.valor)"
+            >
+              {{ e.label }}
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <p v-if="roster.length === 0" class="text-center opacity-60 py-6">
+        No hay alumnos inscritos en este horario.
+      </p>
     </div>
   </div>
 

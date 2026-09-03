@@ -119,15 +119,15 @@ onMounted(cargarClientes);
   <div class="max-w-4xl mx-auto px-4 pb-20 md:pb-10">
     <div class="flex flex-wrap gap-3 items-center justify-between mb-4">
       <h1 class="text-xl font-semibold">Clientes</h1>
-      <div class="flex gap-2">
+      <div class="flex gap-2 w-full sm:w-auto">
         <input
           v-model="busqueda"
           type="text"
           placeholder="Buscar por nombre..."
-          class="input input-bordered input-sm"
+          class="input input-bordered input-sm flex-1 sm:flex-none"
         />
-        <button class="btn btn-primary btn-sm" @click="abrirModalCrear">
-          + Nuevo cliente
+        <button class="btn btn-primary btn-sm shrink-0" @click="abrirModalCrear">
+          + Nuevo
         </button>
       </div>
     </div>
@@ -138,66 +138,127 @@ onMounted(cargarClientes);
       <span class="loading loading-spinner loading-lg"></span>
     </div>
 
-    <div v-else class="overflow-x-auto">
-      <table class="table table-zebra">
-        <thead>
-          <tr>
-            <th>Nombre</th>
-            <th>Teléfono</th>
-            <th>Email</th>
-            <th>Membresía</th>
-            <th></th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr v-for="c in clientesFiltrados" :key="c.id">
-            <td>{{ c.nombre }}</td>
-            <td>{{ c.telefono || "—" }}</td>
-            <td>{{ c.email || "—" }}</td>
-            <td>
-              <span class="badge" :class="estadoMembresia(c).clase">
+    <template v-else>
+      <!-- Móvil: lista de tarjetas. Cada cliente es una tarjeta con nombre y
+           estado arriba, contacto en medio, y acciones abajo como botones
+           grandes (fáciles de tocar), en vez de links apretados en una celda. -->
+      <div class="md:hidden flex flex-col gap-3">
+        <div
+          v-for="c in clientesFiltrados"
+          :key="c.id"
+          class="card bg-base-100 shadow border border-base-200"
+        >
+          <div class="card-body p-4 gap-2">
+            <div class="flex items-start justify-between gap-2">
+              <h2 class="font-semibold leading-tight">{{ c.nombre }}</h2>
+              <span class="badge shrink-0" :class="estadoMembresia(c).clase">
                 {{ estadoMembresia(c).texto }}
               </span>
-            </td>
-            <td>
-              <div class="flex flex-wrap gap-1">
-                <router-link
-                  :to="{ name: 'gimnasio-membresias', query: { clienteId: c.id } }"
-                  class="link link-primary text-sm"
-                >
-                  Membresía
-                </router-link>
-                <router-link
-                  :to="{ name: 'gimnasio-asistencia', query: { clienteId: c.id } }"
-                  class="link link-primary text-sm"
-                >
-                  Horario
-                </router-link>
-                <button
-                  v-if="auth.rol === 'ADMIN'"
-                  class="link text-sm"
-                  @click="abrirModalEditar(c)"
-                >
-                  Editar
-                </button>
-                <button
-                  v-if="auth.rol === 'ADMIN'"
-                  class="link text-sm text-error"
-                  @click="abrirModalEliminar(c)"
-                >
-                  Eliminar
-                </button>
-              </div>
-            </td>
-          </tr>
-          <tr v-if="clientesFiltrados.length === 0">
-            <td colspan="5" class="text-center opacity-60 py-6">
-              No hay clientes {{ busqueda ? "que coincidan" : "registrados" }}.
-            </td>
-          </tr>
-        </tbody>
-      </table>
-    </div>
+            </div>
+
+            <div class="text-sm opacity-70 flex flex-col gap-0.5">
+              <span>{{ c.telefono || "Sin teléfono" }}</span>
+              <span>{{ c.email || "Sin email" }}</span>
+            </div>
+
+            <div class="grid grid-cols-2 gap-2 mt-2">
+              <router-link
+                :to="{ name: 'gimnasio-membresias', query: { clienteId: c.id } }"
+                class="btn btn-sm btn-soft btn-primary"
+              >
+                Membresía
+              </router-link>
+              <router-link
+                :to="{ name: 'gimnasio-asistencia', query: { clienteId: c.id } }"
+                class="btn btn-sm btn-soft btn-secondary"
+              >
+                Horario
+              </router-link>
+              <button
+                v-if="auth.rol === 'ADMIN'"
+                class="btn btn-sm btn-soft"
+                @click="abrirModalEditar(c)"
+              >
+                Editar
+              </button>
+              <button
+                v-if="auth.rol === 'ADMIN'"
+                class="btn btn-sm btn-soft btn-error"
+                @click="abrirModalEliminar(c)"
+              >
+                Eliminar
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <p v-if="clientesFiltrados.length === 0" class="text-center opacity-60 py-10">
+          No hay clientes {{ busqueda ? "que coincidan" : "registrados" }}.
+        </p>
+      </div>
+
+      <!-- Escritorio: se mantiene como tabla, aprovechando el ancho disponible. -->
+      <div class="hidden md:block overflow-x-auto">
+        <table class="table table-zebra">
+          <thead>
+            <tr>
+              <th>Nombre</th>
+              <th>Teléfono</th>
+              <th>Email</th>
+              <th>Membresía</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="c in clientesFiltrados" :key="c.id">
+              <td>{{ c.nombre }}</td>
+              <td>{{ c.telefono || "—" }}</td>
+              <td>{{ c.email || "—" }}</td>
+              <td>
+                <span class="badge" :class="estadoMembresia(c).clase">
+                  {{ estadoMembresia(c).texto }}
+                </span>
+              </td>
+              <td>
+                <div class="flex flex-wrap gap-1">
+                  <router-link
+                    :to="{ name: 'gimnasio-membresias', query: { clienteId: c.id } }"
+                    class="link link-primary text-sm"
+                  >
+                    Membresía
+                  </router-link>
+                  <router-link
+                    :to="{ name: 'gimnasio-asistencia', query: { clienteId: c.id } }"
+                    class="link link-primary text-sm"
+                  >
+                    Horario
+                  </router-link>
+                  <button
+                    v-if="auth.rol === 'ADMIN'"
+                    class="link text-sm"
+                    @click="abrirModalEditar(c)"
+                  >
+                    Editar
+                  </button>
+                  <button
+                    v-if="auth.rol === 'ADMIN'"
+                    class="link text-sm text-error"
+                    @click="abrirModalEliminar(c)"
+                  >
+                    Eliminar
+                  </button>
+                </div>
+              </td>
+            </tr>
+            <tr v-if="clientesFiltrados.length === 0">
+              <td colspan="5" class="text-center opacity-60 py-6">
+                No hay clientes {{ busqueda ? "que coincidan" : "registrados" }}.
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </template>
   </div>
 
   <!-- Modal: crear/editar cliente -->

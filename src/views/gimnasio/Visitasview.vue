@@ -109,30 +109,48 @@ onMounted(cargarTodo);
         <span class="loading loading-spinner loading-lg"></span>
       </div>
 
-      <div v-else class="overflow-x-auto">
-        <table class="table table-zebra">
-          <thead>
-            <tr>
-              <th>Hora</th>
-              <th>Cliente</th>
-              <th>Cubierto con</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr v-for="v in visitas" :key="v.id">
-              <td>{{ formatearHora(v.fechaHora) }}</td>
-              <td>{{ v.cliente.nombre }}</td>
-              <td>
-                <span v-if="v.membresiaId" class="badge badge-success badge-sm">Membresía</span>
-                <span v-else class="badge badge-warning badge-sm">Pase diario / sin cubrir</span>
-              </td>
-            </tr>
-            <tr v-if="visitas.length === 0">
-              <td colspan="3" class="text-center opacity-60 py-6">Todavía no hay ingresos registrados.</td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
+      <template v-else>
+        <!-- Móvil: lista compacta, sin scroll horizontal -->
+        <ul class="md:hidden flex flex-col divide-y divide-base-200">
+          <li v-for="v in visitas" :key="v.id" class="flex items-center justify-between py-2.5">
+            <div>
+              <p class="font-medium">{{ v.cliente.nombre }}</p>
+              <p class="text-xs opacity-60">{{ formatearHora(v.fechaHora) }}</p>
+            </div>
+            <span v-if="v.membresiaId" class="badge badge-soft badge-success badge-sm">Membresía</span>
+            <span v-else class="badge badge-soft badge-warning badge-sm">Sin cubrir</span>
+          </li>
+          <li v-if="visitas.length === 0" class="text-center opacity-60 py-6">
+            Todavía no hay ingresos registrados.
+          </li>
+        </ul>
+
+        <!-- Escritorio: tabla -->
+        <div class="hidden md:block overflow-x-auto">
+          <table class="table table-zebra">
+            <thead>
+              <tr>
+                <th>Hora</th>
+                <th>Cliente</th>
+                <th>Cubierto con</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="v in visitas" :key="v.id">
+                <td>{{ formatearHora(v.fechaHora) }}</td>
+                <td>{{ v.cliente.nombre }}</td>
+                <td>
+                  <span v-if="v.membresiaId" class="badge badge-success badge-sm">Membresía</span>
+                  <span v-else class="badge badge-warning badge-sm">Pase diario / sin cubrir</span>
+                </td>
+              </tr>
+              <tr v-if="visitas.length === 0">
+                <td colspan="3" class="text-center opacity-60 py-6">Todavía no hay ingresos registrados.</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </template>
     </div>
   </div>
 </template>

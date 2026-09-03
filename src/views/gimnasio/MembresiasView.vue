@@ -213,7 +213,7 @@ watch(clienteId, cargarMembresiasCliente);
               <span class="font-medium">{{ membresiaVigente.plan.nombre }}</span>
               — vence el {{ formatearFecha(membresiaVigente.fechaVencimiento) }}
               <span
-                class="badge ml-2"
+                class="badge badge-soft ml-2"
                 :class="membresiaVigente.estado === 'CONGELADA' ? 'badge-warning' : 'badge-success'"
               >
                 {{ membresiaVigente.estado === "CONGELADA" ? "Pausada" : "Activa" }}
@@ -256,7 +256,7 @@ watch(clienteId, cargarMembresiasCliente);
             <div class="mt-2">
               <button
                 v-if="membresiaVigente.estado === 'ACTIVA'"
-                class="btn btn-ghost btn-xs"
+                class="btn btn-soft btn-warning btn-sm"
                 :disabled="procesando"
                 @click="pausar(membresiaVigente)"
               >
@@ -264,7 +264,7 @@ watch(clienteId, cargarMembresiasCliente);
               </button>
               <button
                 v-else
-                class="btn btn-ghost btn-xs"
+                class="btn btn-soft btn-success btn-sm"
                 :disabled="procesando"
                 @click="reanudar(membresiaVigente)"
               >
@@ -331,40 +331,71 @@ watch(clienteId, cargarMembresiasCliente);
         <span class="loading loading-spinner loading-lg"></span>
       </div>
 
-      <div v-else class="overflow-x-auto">
-        <table class="table table-zebra">
-          <thead>
-            <tr>
-              <th>Cliente</th>
-              <th>Plan</th>
-              <th>Vence</th>
-              <th>Saldo</th>
-              <th></th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr v-for="m in activas" :key="m.id">
-              <td>{{ m.cliente.nombre }}</td>
-              <td>{{ m.plan.nombre }}</td>
-              <td>{{ formatearFecha(m.fechaVencimiento) }}</td>
-              <td>
-                <span v-if="m.saldo > 0" class="text-warning">Bs {{ m.saldo.toFixed(2) }}</span>
-                <span v-else class="text-success">Pagada</span>
-              </td>
-              <td>
-                <button class="btn btn-ghost btn-xs" @click="clienteId = m.clienteId">
-                  Ver
-                </button>
-              </td>
-            </tr>
-            <tr v-if="activas.length === 0">
-              <td colspan="5" class="text-center opacity-60 py-6">
-                No hay membresías activas ahora mismo.
-              </td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
+      <template v-else>
+        <!-- Móvil: tarjetas -->
+        <div class="md:hidden flex flex-col gap-3">
+          <div v-for="m in activas" :key="m.id" class="card bg-base-100 shadow border border-base-200">
+            <div class="card-body p-4 gap-1.5">
+              <div class="flex items-start justify-between gap-2">
+                <h3 class="font-semibold leading-tight">{{ m.cliente.nombre }}</h3>
+                <span v-if="m.saldo > 0" class="badge badge-soft badge-warning shrink-0">
+                  Bs {{ m.saldo.toFixed(2) }}
+                </span>
+                <span v-else class="badge badge-soft badge-success shrink-0">Pagada</span>
+              </div>
+              <p class="text-sm opacity-70">
+                {{ m.plan.nombre }} · vence {{ formatearFecha(m.fechaVencimiento) }}
+              </p>
+              <button
+                class="btn btn-sm btn-soft btn-primary mt-2 self-start"
+                @click="clienteId = m.clienteId"
+              >
+                Ver
+              </button>
+            </div>
+          </div>
+
+          <p v-if="activas.length === 0" class="text-center opacity-60 py-10">
+            No hay membresías activas ahora mismo.
+          </p>
+        </div>
+
+        <!-- Escritorio: tabla -->
+        <div class="hidden md:block overflow-x-auto">
+          <table class="table table-zebra">
+            <thead>
+              <tr>
+                <th>Cliente</th>
+                <th>Plan</th>
+                <th>Vence</th>
+                <th>Saldo</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="m in activas" :key="m.id">
+                <td>{{ m.cliente.nombre }}</td>
+                <td>{{ m.plan.nombre }}</td>
+                <td>{{ formatearFecha(m.fechaVencimiento) }}</td>
+                <td>
+                  <span v-if="m.saldo > 0" class="text-warning">Bs {{ m.saldo.toFixed(2) }}</span>
+                  <span v-else class="text-success">Pagada</span>
+                </td>
+                <td>
+                  <button class="btn btn-ghost btn-xs" @click="clienteId = m.clienteId">
+                    Ver
+                  </button>
+                </td>
+              </tr>
+              <tr v-if="activas.length === 0">
+                <td colspan="5" class="text-center opacity-60 py-6">
+                  No hay membresías activas ahora mismo.
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </template>
     </section>
   </div>
 </template>

@@ -113,46 +113,85 @@ onMounted(cargarPlanes);
       <span class="loading loading-spinner loading-lg"></span>
     </div>
 
-    <div v-else class="overflow-x-auto">
-      <table class="table table-zebra">
-        <thead>
-          <tr>
-            <th>Nombre</th>
-            <th>Duración</th>
-            <th>Precio</th>
-            <th>Promoción</th>
-            <th>Estado</th>
-            <th v-if="auth.rol === 'ADMIN'"></th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr v-for="p in planes" :key="p.id">
-            <td>{{ p.nombre }}</td>
-            <td>{{ p.duracionDias === 1 ? "1 día" : `${p.duracionDias} días` }}</td>
-            <td>Bs {{ p.precio }}</td>
-            <td>
-              <span v-if="p.esPromocion" class="badge badge-accent">Promo</span>
-              <span v-else class="opacity-50">—</span>
-            </td>
-            <td>
-              <span class="badge" :class="p.activo ? 'badge-success' : 'badge-ghost'">
-                {{ p.activo ? "Activo" : "Inactivo" }}
-              </span>
-            </td>
-            <td v-if="auth.rol === 'ADMIN'">
-              <button class="btn btn-ghost btn-xs" @click="toggleActivo(p)">
-                {{ p.activo ? "Desactivar" : "Reactivar" }}
-              </button>
-            </td>
-          </tr>
-          <tr v-if="planes.length === 0">
-            <td colspan="6" class="text-center opacity-60 py-6">
-              No hay planes registrados.
-            </td>
-          </tr>
-        </tbody>
-      </table>
-    </div>
+    <template v-else>
+      <!-- Móvil: tarjetas -->
+      <div class="md:hidden flex flex-col gap-3">
+        <div
+          v-for="p in planes"
+          :key="p.id"
+          class="card bg-base-100 shadow border border-base-200"
+          :class="{ 'opacity-60': !p.activo }"
+        >
+          <div class="card-body p-4 gap-2">
+            <div class="flex items-start justify-between gap-2">
+              <h2 class="font-semibold leading-tight">{{ p.nombre }}</h2>
+              <div class="flex gap-1 shrink-0">
+                <span v-if="p.esPromocion" class="badge badge-soft badge-accent">Promo</span>
+                <span class="badge badge-soft" :class="p.activo ? 'badge-success' : 'badge-ghost'">
+                  {{ p.activo ? "Activo" : "Inactivo" }}
+                </span>
+              </div>
+            </div>
+            <p class="text-sm opacity-70">
+              {{ p.duracionDias === 1 ? "1 día" : `${p.duracionDias} días` }} · Bs {{ p.precio }}
+            </p>
+            <button
+              v-if="auth.rol === 'ADMIN'"
+              class="btn btn-sm btn-soft mt-2 self-start"
+              @click="toggleActivo(p)"
+            >
+              {{ p.activo ? "Desactivar" : "Reactivar" }}
+            </button>
+          </div>
+        </div>
+
+        <p v-if="planes.length === 0" class="text-center opacity-60 py-10">
+          No hay planes registrados.
+        </p>
+      </div>
+
+      <!-- Escritorio: tabla -->
+      <div class="hidden md:block overflow-x-auto">
+        <table class="table table-zebra">
+          <thead>
+            <tr>
+              <th>Nombre</th>
+              <th>Duración</th>
+              <th>Precio</th>
+              <th>Promoción</th>
+              <th>Estado</th>
+              <th v-if="auth.rol === 'ADMIN'"></th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="p in planes" :key="p.id">
+              <td>{{ p.nombre }}</td>
+              <td>{{ p.duracionDias === 1 ? "1 día" : `${p.duracionDias} días` }}</td>
+              <td>Bs {{ p.precio }}</td>
+              <td>
+                <span v-if="p.esPromocion" class="badge badge-accent">Promo</span>
+                <span v-else class="opacity-50">—</span>
+              </td>
+              <td>
+                <span class="badge" :class="p.activo ? 'badge-success' : 'badge-ghost'">
+                  {{ p.activo ? "Activo" : "Inactivo" }}
+                </span>
+              </td>
+              <td v-if="auth.rol === 'ADMIN'">
+                <button class="btn btn-ghost btn-xs" @click="toggleActivo(p)">
+                  {{ p.activo ? "Desactivar" : "Reactivar" }}
+                </button>
+              </td>
+            </tr>
+            <tr v-if="planes.length === 0">
+              <td colspan="6" class="text-center opacity-60 py-6">
+                No hay planes registrados.
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </template>
   </div>
 
   <!-- Modal: nuevo plan -->

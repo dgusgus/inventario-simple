@@ -127,52 +127,92 @@ onMounted(cargarTodo);
         <span class="loading loading-spinner loading-lg"></span>
       </div>
 
-      <div v-else class="overflow-x-auto">
-        <table class="table table-zebra">
-          <thead>
-            <tr>
-              <th>Periodo</th>
-              <th>Instructor</th>
-              <th>Base</th>
-              <th>Bonos</th>
-              <th>Descuentos</th>
-              <th>Total</th>
-              <th>Estado</th>
-              <th></th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr v-for="p in pagos" :key="p.id">
-              <td>{{ p.periodo }}</td>
-              <td>{{ p.instructor.usuario.nombre }}</td>
-              <td>Bs {{ p.montoBase }}</td>
-              <td class="text-success">+Bs {{ p.totalBonos }}</td>
-              <td class="text-error">-Bs {{ p.totalDescuentos }}</td>
-              <td class="font-medium">Bs {{ p.montoTotal }}</td>
-              <td>
-                <span class="badge" :class="p.estado === 'PAGADO' ? 'badge-success' : 'badge-warning'">
+      <template v-else>
+        <!-- Móvil: tarjetas -->
+        <div class="md:hidden flex flex-col gap-3">
+          <div v-for="p in pagos" :key="p.id" class="card bg-base-100 shadow border border-base-200">
+            <div class="card-body p-4 gap-2">
+              <div class="flex items-start justify-between gap-2">
+                <div>
+                  <h2 class="font-semibold leading-tight">{{ p.instructor.usuario.nombre }}</h2>
+                  <p class="text-xs opacity-60">{{ p.periodo }}</p>
+                </div>
+                <span class="badge badge-soft" :class="p.estado === 'PAGADO' ? 'badge-success' : 'badge-warning'">
                   {{ p.estado === "PAGADO" ? "Pagado" : "Pendiente" }}
                 </span>
-                <span v-if="p.fechaPago" class="text-xs opacity-60 block">{{ formatearFecha(p.fechaPago) }}</span>
-              </td>
-              <td>
-                <button
-                  v-if="p.estado === 'PENDIENTE'"
-                  class="btn btn-ghost btn-xs"
-                  @click="marcarPagado(p)"
-                >
-                  Marcar pagado
-                </button>
-              </td>
-            </tr>
-            <tr v-if="pagos.length === 0">
-              <td colspan="8" class="text-center opacity-60 py-6">
-                No se ha generado ninguna planilla todavía.
-              </td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
+              </div>
+
+              <div class="text-sm flex flex-col gap-0.5">
+                <span class="opacity-70">Base: Bs {{ p.montoBase }}</span>
+                <span class="text-success">Bonos: +Bs {{ p.totalBonos }}</span>
+                <span class="text-error">Descuentos: -Bs {{ p.totalDescuentos }}</span>
+                <span class="font-medium">Total: Bs {{ p.montoTotal }}</span>
+                <span v-if="p.fechaPago" class="text-xs opacity-60">Pagado el {{ formatearFecha(p.fechaPago) }}</span>
+              </div>
+
+              <button
+                v-if="p.estado === 'PENDIENTE'"
+                class="btn btn-sm btn-soft btn-success mt-2 self-start"
+                @click="marcarPagado(p)"
+              >
+                Marcar pagado
+              </button>
+            </div>
+          </div>
+
+          <p v-if="pagos.length === 0" class="text-center opacity-60 py-10">
+            No se ha generado ninguna planilla todavía.
+          </p>
+        </div>
+
+        <!-- Escritorio: tabla -->
+        <div class="hidden md:block overflow-x-auto">
+          <table class="table table-zebra">
+            <thead>
+              <tr>
+                <th>Periodo</th>
+                <th>Instructor</th>
+                <th>Base</th>
+                <th>Bonos</th>
+                <th>Descuentos</th>
+                <th>Total</th>
+                <th>Estado</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="p in pagos" :key="p.id">
+                <td>{{ p.periodo }}</td>
+                <td>{{ p.instructor.usuario.nombre }}</td>
+                <td>Bs {{ p.montoBase }}</td>
+                <td class="text-success">+Bs {{ p.totalBonos }}</td>
+                <td class="text-error">-Bs {{ p.totalDescuentos }}</td>
+                <td class="font-medium">Bs {{ p.montoTotal }}</td>
+                <td>
+                  <span class="badge" :class="p.estado === 'PAGADO' ? 'badge-success' : 'badge-warning'">
+                    {{ p.estado === "PAGADO" ? "Pagado" : "Pendiente" }}
+                  </span>
+                  <span v-if="p.fechaPago" class="text-xs opacity-60 block">{{ formatearFecha(p.fechaPago) }}</span>
+                </td>
+                <td>
+                  <button
+                    v-if="p.estado === 'PENDIENTE'"
+                    class="btn btn-ghost btn-xs"
+                    @click="marcarPagado(p)"
+                  >
+                    Marcar pagado
+                  </button>
+                </td>
+              </tr>
+              <tr v-if="pagos.length === 0">
+                <td colspan="8" class="text-center opacity-60 py-6">
+                  No se ha generado ninguna planilla todavía.
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </template>
     </section>
   </div>
 </template>

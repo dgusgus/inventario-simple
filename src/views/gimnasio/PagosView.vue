@@ -100,7 +100,7 @@ onMounted(cargarPagos);
     <div class="flex flex-wrap items-center justify-between gap-3 mb-4">
       <h1 class="text-xl font-semibold">Historial de pagos</h1>
       <div class="flex gap-2">
-        <button class="btn btn-outline btn-sm" @click="exportarCSV" :disabled="pagosFiltrados.length === 0">
+        <button class="btn btn-soft btn-sm" @click="exportarCSV" :disabled="pagosFiltrados.length === 0">
           Exportar CSV
         </button>
         <router-link :to="{ name: 'gimnasio-membresias' }" class="btn btn-primary btn-sm">
@@ -153,7 +153,30 @@ onMounted(cargarPagos);
         <span class="font-medium">Total: Bs {{ totalFiltrado.toFixed(2) }}</span>
       </div>
 
-      <div class="overflow-x-auto">
+      <!-- Móvil: tarjetas -->
+      <div class="md:hidden flex flex-col gap-3">
+        <div v-for="p in pagosFiltrados" :key="p.id" class="card bg-base-100 shadow border border-base-200">
+          <div class="card-body p-4 gap-1">
+            <div class="flex items-start justify-between gap-2">
+              <h3 class="font-semibold leading-tight">{{ p.membresia.cliente.nombre }}</h3>
+              <span class="font-medium shrink-0">Bs {{ p.monto }}</span>
+            </div>
+            <p class="text-sm opacity-70">
+              {{ formatearFecha(p.fecha) }} · {{ p.metodo }}
+            </p>
+            <p class="text-xs opacity-50">
+              Registrado por {{ p.registradoPor?.nombre ?? "—" }}
+            </p>
+          </div>
+        </div>
+
+        <p v-if="pagosFiltrados.length === 0" class="text-center opacity-60 py-10">
+          No hay pagos {{ (filtroFechaDesde || filtroFechaHasta || filtroClienteId || filtroMetodo) ? "que coincidan con los filtros" : "registrados todavía" }}.
+        </p>
+      </div>
+
+      <!-- Escritorio: tabla -->
+      <div class="hidden md:block overflow-x-auto">
         <table class="table table-zebra">
           <thead>
             <tr>

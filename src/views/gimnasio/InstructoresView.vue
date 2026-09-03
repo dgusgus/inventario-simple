@@ -214,92 +214,96 @@ onMounted(cargarInstructores);
       <span class="loading loading-spinner loading-lg"></span>
     </div>
 
-    <div v-else class="flex flex-col gap-2">
+    <div v-else class="flex flex-col gap-3">
       <div
         v-for="ins in instructores"
         :key="ins.id"
-        class="card bg-base-100 shadow"
+        class="card bg-base-100 shadow border border-base-200"
       >
-        <div class="card-body py-3">
-          <div class="flex flex-wrap items-center justify-between gap-2">
-            <div>
-              <p class="font-medium">{{ ins.usuario.nombre }}</p>
-              <p class="text-sm opacity-70">
-                {{ ins.especialidad || "Sin especialidad" }}
-                <span v-if="ins.telefono"> · {{ ins.telefono }}</span>
-                <span v-if="ins.sueldoBase"> · Sueldo base: Bs {{ ins.sueldoBase }}</span>
-              </p>
-            </div>
-            <div class="flex gap-2">
-              <button class="btn btn-ghost btn-sm" @click="toggleDetalle(ins)">
-                {{ instructorExpandidoId === ins.id ? "Ocultar" : "Ver bonos/descuentos" }}
-              </button>
-              <template v-if="auth.rol === 'ADMIN'">
-                <button class="btn btn-outline btn-sm" @click="abrirModalEditar(ins)">
-                  Editar
-                </button>
-                <button class="btn btn-outline btn-sm" @click="abrirModalMovimiento(ins, 'bono')">
-                  + Bono
-                </button>
-                <button class="btn btn-outline btn-sm" @click="abrirModalMovimiento(ins, 'descuento')">
-                  + Descuento
-                </button>
-                <button class="btn btn-outline btn-sm text-error" @click="abrirModalEliminar(ins)">
-                  Eliminar
-                </button>
-              </template>
-            </div>
+        <div class="card-body p-4 gap-2">
+          <div>
+            <p class="font-semibold">{{ ins.usuario.nombre }}</p>
+            <p class="text-sm opacity-70">
+              {{ ins.especialidad || "Sin especialidad" }}
+              <span v-if="ins.telefono"> · {{ ins.telefono }}</span>
+              <span v-if="ins.sueldoBase"> · Sueldo base: Bs {{ ins.sueldoBase }}</span>
+            </p>
           </div>
 
-          <div v-if="instructorExpandidoId === ins.id" class="mt-3 border-t pt-3 flex flex-col gap-4">
+          <!-- Acciones: grid de 2 columnas en móvil (botones grandes), fila en desktop -->
+          <div class="grid grid-cols-2 md:flex md:flex-wrap gap-2">
+            <button class="btn btn-sm btn-soft" @click="toggleDetalle(ins)">
+              {{ instructorExpandidoId === ins.id ? "Ocultar" : "Bonos/descuentos" }}
+            </button>
+            <template v-if="auth.rol === 'ADMIN'">
+              <button class="btn btn-sm btn-soft btn-info" @click="abrirModalEditar(ins)">
+                Editar
+              </button>
+              <button class="btn btn-sm btn-soft btn-success" @click="abrirModalMovimiento(ins, 'bono')">
+                + Bono
+              </button>
+              <button class="btn btn-sm btn-soft btn-warning" @click="abrirModalMovimiento(ins, 'descuento')">
+                + Descuento
+              </button>
+              <button class="btn btn-sm btn-soft btn-error col-span-2 md:col-span-1" @click="abrirModalEliminar(ins)">
+                Eliminar
+              </button>
+            </template>
+          </div>
+
+          <div v-if="instructorExpandidoId === ins.id" class="mt-1 border-t border-base-200 pt-3 flex flex-col gap-4">
             <div v-if="cargandoDetalle" class="flex justify-center py-4">
               <span class="loading loading-spinner loading-sm"></span>
             </div>
             <template v-else>
               <div>
                 <p class="text-sm font-medium opacity-70 mb-1">Bonos</p>
-                <table class="table table-sm">
-                  <thead>
-                    <tr>
-                      <th>Fecha</th>
-                      <th>Monto</th>
-                      <th>Motivo</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    <tr v-for="b in bonosPorInstructor[ins.id]" :key="b.id">
-                      <td>{{ formatearFecha(b.fecha) }}</td>
-                      <td class="text-success">+Bs {{ b.monto }}</td>
-                      <td>{{ b.motivo }}</td>
-                    </tr>
-                    <tr v-if="(bonosPorInstructor[ins.id] ?? []).length === 0">
-                      <td colspan="3" class="text-center opacity-60 py-3">Sin bonos registrados.</td>
-                    </tr>
-                  </tbody>
-                </table>
+                <div class="overflow-x-auto">
+                  <table class="table table-sm">
+                    <thead>
+                      <tr>
+                        <th>Fecha</th>
+                        <th>Monto</th>
+                        <th>Motivo</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr v-for="b in bonosPorInstructor[ins.id]" :key="b.id">
+                        <td>{{ formatearFecha(b.fecha) }}</td>
+                        <td class="text-success">+Bs {{ b.monto }}</td>
+                        <td>{{ b.motivo }}</td>
+                      </tr>
+                      <tr v-if="(bonosPorInstructor[ins.id] ?? []).length === 0">
+                        <td colspan="3" class="text-center opacity-60 py-3">Sin bonos registrados.</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
               </div>
 
               <div>
                 <p class="text-sm font-medium opacity-70 mb-1">Descuentos</p>
-                <table class="table table-sm">
-                  <thead>
-                    <tr>
-                      <th>Fecha</th>
-                      <th>Monto</th>
-                      <th>Motivo</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    <tr v-for="d in descuentosPorInstructor[ins.id]" :key="d.id">
-                      <td>{{ formatearFecha(d.fecha) }}</td>
-                      <td class="text-error">-Bs {{ d.monto }}</td>
-                      <td>{{ d.motivo }}</td>
-                    </tr>
-                    <tr v-if="(descuentosPorInstructor[ins.id] ?? []).length === 0">
-                      <td colspan="3" class="text-center opacity-60 py-3">Sin descuentos registrados.</td>
-                    </tr>
-                  </tbody>
-                </table>
+                <div class="overflow-x-auto">
+                  <table class="table table-sm">
+                    <thead>
+                      <tr>
+                        <th>Fecha</th>
+                        <th>Monto</th>
+                        <th>Motivo</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr v-for="d in descuentosPorInstructor[ins.id]" :key="d.id">
+                        <td>{{ formatearFecha(d.fecha) }}</td>
+                        <td class="text-error">-Bs {{ d.monto }}</td>
+                        <td>{{ d.motivo }}</td>
+                      </tr>
+                      <tr v-if="(descuentosPorInstructor[ins.id] ?? []).length === 0">
+                        <td colspan="3" class="text-center opacity-60 py-3">Sin descuentos registrados.</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
               </div>
             </template>
           </div>
