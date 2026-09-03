@@ -63,7 +63,7 @@ async function cargarHorarios() {
   error.value = "";
   try {
     const [resHorarios, resClientes] = await Promise.all([
-      apiGimnasio.get("/horarios"),
+      apiGimnasio.get("/horarios", { params: { activo: true } }),
       apiGimnasio.get("/clientes", { params: { activo: true } }),
     ]);
     horarios.value = resHorarios.data;

@@ -25,7 +25,8 @@ const filtroDia = ref("");
 
 const modalAbierto = ref(false);
 const guardando = ref(false);
-const nuevoHorario = ref({
+const editandoId = ref(null); // null = creando uno nuevo; si no, es el id que se está editando
+const formHorario = ref({
   nombre: "",
   diaSemana: "LUNES",
   horaInicio: "06:00",
@@ -34,7 +35,7 @@ const nuevoHorario = ref({
   instructorIds: [],
 });
 
-// Agrupa los horarios por día para pintarlos en columnas/secciones
+// Agrupa los horarios por día para pintarlos en secciones
 const horariosPorDia = computed(() => {
   const grupos = {};
   for (const d of DIAS) grupos[d] = [];
@@ -48,6 +49,8 @@ async function cargarTodo() {
   cargando.value = true;
   error.value = "";
   try {
+    // Sin filtro "activo": trae también los desactivados, para poder
+    // encontrarlos y reactivarlos desde aquí.
     const [resHorarios, resInstructores] = await Promise.all([
       apiGimnasio.get("/horarios", {
         params: filtroDia.value ? { diaSemana: filtroDia.value } : {},
@@ -63,8 +66,9 @@ async function cargarTodo() {
   }
 }
 
-function abrirModal() {
-  nuevoHorario.value = {
+function abrirModalCrear() {
+  editandoId.value = null;
+  formHorario.value = {
     nombre: "",
     diaSemana: filtroDia.value || "LUNES",
     horaInicio: "06:00",
@@ -75,8 +79,21 @@ function abrirModal() {
   modalAbierto.value = true;
 }
 
-async function crearHorario() {
-  if (nuevoHorario.value.instructorIds.length === 0) {
+function abrirModalEditar(horario) {
+  editandoId.value = horario.id;
+  formHorario.value = {
+    nombre: horario.nombre ?? "",
+    diaSemana: horario.diaSemana,
+    horaInicio: horario.horaInicio,
+    horaFin: horario.horaFin,
+    cupoMaximo: horario.cupoMaximo ?? "",
+    instructorIds: horario.instructores.map((hi) => hi.instructorId),
+  };
+  modalAbierto.value = true;
+}
+
+async function guardarHorario() {
+  if (formHorario.value.instructorIds.length === 0) {
     error.value = "Selecciona al menos un instructor.";
     return;
   }
@@ -84,38 +101,47 @@ async function crearHorario() {
   error.value = "";
   try {
     const payload = {
-      diaSemana: nuevoHorario.value.diaSemana,
-      horaInicio: nuevoHorario.value.horaInicio,
-      horaFin: nuevoHorario.value.horaFin,
-      instructorIds: nuevoHorario.value.instructorIds,
+      diaSemana: formHorario.value.diaSemana,
+      horaInicio: formHorario.value.horaInicio,
+      horaFin: formHorario.value.horaFin,
+      instructorIds: formHorario.value.instructorIds,
     };
-    if (nuevoHorario.value.nombre) payload.nombre = nuevoHorario.value.nombre;
-    if (nuevoHorario.value.cupoMaximo) {
-      payload.cupoMaximo = Number(nuevoHorario.value.cupoMaximo);
+    if (formHorario.value.nombre) payload.nombre = formHorario.value.nombre;
+    if (formHorario.value.cupoMaximo) {
+      payload.cupoMaximo = Number(formHorario.value.cupoMaximo);
     }
 
-    await apiGimnasio.post("/horarios", payload);
+    if (editandoId.value) {
+      await apiGimnasio.patch(`/horarios/${editandoId.value}`, payload);
+    } else {
+      await apiGimnasio.post("/horarios", payload);
+    }
     modalAbierto.value = false;
     await cargarTodo();
   } catch (e) {
-    error.value = e.response?.data?.error ?? "No se pudo crear el horario.";
+    error.value = e.response?.data?.error ?? "No se pudo guardar el horario.";
   } finally {
     guardando.value = false;
   }
 }
 
-async function desactivar(horario) {
+async function toggleActivo(horario) {
   error.value = "";
   try {
-    await apiGimnasio.delete(`/horarios/${horario.id}`);
+    if (horario.activo) {
+      await apiGimnasio.delete(`/horarios/${horario.id}`); // desactiva, no borra
+    } else {
+      await apiGimnasio.patch(`/horarios/${horario.id}`, { activo: true });
+    }
     await cargarTodo();
   } catch (e) {
-    error.value = e.response?.data?.error ?? "No se pudo desactivar el horario.";
+    error.value = e.response?.data?.error ?? "No se pudo actualizar el horario.";
   }
 }
 
 function nombresInstructores(horario) {
-  return horario.instructores.map((hi) => hi.instructor.usuario.nombre).join(", ");
+  const nombres = horario.instructores.map((hi) => hi.instructor.usuario.nombre);
+  return nombres.length > 0 ? nombres.join(", ") : "Sin instructor asignado";
 }
 
 onMounted(cargarTodo);
@@ -135,7 +161,7 @@ onMounted(cargarTodo);
         <button
           v-if="auth.rol === 'ADMIN'"
           class="btn btn-primary btn-sm"
-          @click="abrirModal"
+          @click="abrirModalCrear"
         >
           + Nuevo horario
         </button>
@@ -156,28 +182,29 @@ onMounted(cargarTodo);
             v-for="h in horariosPorDia[d]"
             :key="h.id"
             class="card bg-base-100 shadow"
+            :class="{ 'opacity-50': !h.activo }"
           >
             <div class="card-body py-3 flex-row flex-wrap items-center justify-between gap-2">
               <div>
                 <p class="font-medium">
                   {{ h.horaInicio }} - {{ h.horaFin }}
                   <span v-if="h.nombre" class="opacity-70">· {{ h.nombre }}</span>
+                  <span v-if="!h.activo" class="badge badge-ghost badge-sm ml-2">Inactivo</span>
                 </p>
-                <p class="text-sm opacity-70">
-                  {{ nombresInstructores(h) || "Sin instructor" }}
-                </p>
+                <p class="text-sm opacity-70">{{ nombresInstructores(h) }}</p>
                 <p class="text-xs opacity-50">
                   {{ h._count?.inscripciones ?? 0 }} inscrito{{ h._count?.inscripciones === 1 ? "" : "s" }}
                   <span v-if="h.cupoMaximo"> / {{ h.cupoMaximo }} cupos</span>
                 </p>
               </div>
-              <button
-                v-if="auth.rol === 'ADMIN'"
-                class="btn btn-ghost btn-xs"
-                @click="desactivar(h)"
-              >
-                Desactivar
-              </button>
+              <div v-if="auth.rol === 'ADMIN'" class="flex gap-2">
+                <button class="btn btn-ghost btn-xs" @click="abrirModalEditar(h)">
+                  Editar
+                </button>
+                <button class="btn btn-ghost btn-xs" @click="toggleActivo(h)">
+                  {{ h.activo ? "Desactivar" : "Reactivar" }}
+                </button>
+              </div>
             </div>
           </div>
         </div>
@@ -189,20 +216,22 @@ onMounted(cargarTodo);
     </div>
   </div>
 
-  <!-- Modal: nuevo horario -->
+  <!-- Modal: crear/editar horario -->
   <dialog class="modal" :open="modalAbierto">
     <div class="modal-box">
-      <h3 class="font-bold text-lg mb-3">Nuevo horario</h3>
-      <form @submit.prevent="crearHorario" class="flex flex-col gap-3">
+      <h3 class="font-bold text-lg mb-3">
+        {{ editandoId ? "Editar horario" : "Nuevo horario" }}
+      </h3>
+      <form @submit.prevent="guardarHorario" class="flex flex-col gap-3">
         <input
-          v-model="nuevoHorario.nombre"
+          v-model="formHorario.nombre"
           placeholder="Nombre (opcional, ej. Funcional)"
           class="input input-bordered w-full"
         />
 
         <label class="form-control">
           <span class="label-text mb-1">Día</span>
-          <select v-model="nuevoHorario.diaSemana" class="select select-bordered w-full">
+          <select v-model="formHorario.diaSemana" class="select select-bordered w-full">
             <option v-for="d in DIAS" :key="d" :value="d">{{ DIAS_LABEL[d] }}</option>
           </select>
         </label>
@@ -210,18 +239,18 @@ onMounted(cargarTodo);
         <div class="flex gap-3">
           <label class="form-control flex-1">
             <span class="label-text mb-1">Hora inicio</span>
-            <input v-model="nuevoHorario.horaInicio" type="time" required class="input input-bordered w-full" />
+            <input v-model="formHorario.horaInicio" type="time" required class="input input-bordered w-full" />
           </label>
           <label class="form-control flex-1">
             <span class="label-text mb-1">Hora fin</span>
-            <input v-model="nuevoHorario.horaFin" type="time" required class="input input-bordered w-full" />
+            <input v-model="formHorario.horaFin" type="time" required class="input input-bordered w-full" />
           </label>
         </div>
 
         <label class="form-control">
           <span class="label-text mb-1">Cupo máximo (opcional)</span>
           <input
-            v-model="nuevoHorario.cupoMaximo"
+            v-model="formHorario.cupoMaximo"
             type="number"
             min="1"
             class="input input-bordered w-full"
@@ -239,7 +268,7 @@ onMounted(cargarTodo);
               <input
                 type="checkbox"
                 :value="ins.id"
-                v-model="nuevoHorario.instructorIds"
+                v-model="formHorario.instructorIds"
                 class="checkbox checkbox-sm"
               />
               <span class="label-text">{{ ins.usuario.nombre }}</span>
