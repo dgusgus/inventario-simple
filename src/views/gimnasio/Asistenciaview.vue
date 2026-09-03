@@ -46,6 +46,20 @@ const horarioSeleccionado = computed(() =>
   horarios.value.find((h) => h.id === horarioId.value)
 );
 
+const inscripcionesActuales = computed(() => roster.value.length);
+
+const cupoMaximo = computed(() => horarioSeleccionado.value?.cupoMaximo ?? null);
+
+const cuposDisponibles = computed(() => {
+  if (!cupoMaximo.value) return null;
+  return cupoMaximo.value - inscripcionesActuales.value;
+});
+
+const cupoCompleto = computed(() => {
+  if (!cupoMaximo.value) return false;
+  return cuposDisponibles.value <= 0;
+});
+
 // Clientes que aún no están en el roster de este horario
 const clientesDisponibles = computed(() => {
   const idsEnRoster = new Set(roster.value.map((r) => r.cliente.id));
@@ -177,11 +191,23 @@ watch([horarioId, fecha], cargarRoster);
 
       <button
         class="btn btn-primary btn-sm"
-        :disabled="!horarioId"
+        :disabled="!horarioId || cupoCompleto"
         @click="modalInscribirAbierto = true"
       >
         + Inscribir alumno
       </button>
+    </div>
+
+    <div v-if="horarioSeleccionado && cupoMaximo" class="flex gap-4 text-sm">
+      <span class="opacity-70">
+        Cupos: {{ inscripcionesActuales }} / {{ cupoMaximo }}
+      </span>
+      <span v-if="cupoCompleto" class="text-error font-medium">
+        Cupo completo
+      </span>
+      <span v-else class="text-success">
+        {{ cuposDisponibles }} disponible{{ cuposDisponibles === 1 ? "" : "s" }}
+      </span>
     </div>
 
     <p v-if="error" class="text-error text-sm">{{ error }}</p>
@@ -244,7 +270,15 @@ watch([horarioId, fecha], cargarRoster);
     <div class="modal-box">
       <h3 class="font-bold text-lg mb-3">Inscribir alumno en {{ horarioSeleccionado ? etiquetaHorario(horarioSeleccionado) : "" }}</h3>
       <form @submit.prevent="inscribir" class="flex flex-col gap-3">
-        <select v-model="clienteAInscribir" class="select select-bordered w-full" required>
+        <div v-if="cupoMaximo" class="alert" :class="cupoCompleto ? 'alert-error' : 'alert-info'">
+          <span v-if="cupoCompleto">
+            Este horario ha alcanzado su cupo máximo ({{ cupoMaximo }}).
+          </span>
+          <span v-else>
+            Cupos disponibles: {{ cuposDisponibles }} de {{ cupoMaximo }}
+          </span>
+        </div>
+        <select v-model="clienteAInscribir" class="select select-bordered w-full" required :disabled="cupoCompleto">
           <option disabled value="">Selecciona un alumno...</option>
           <option v-for="c in clientesDisponibles" :key="c.id" :value="c.id">
             {{ c.nombre }}
@@ -255,7 +289,7 @@ watch([horarioId, fecha], cargarRoster);
         </p>
         <div class="modal-action">
           <button type="button" class="btn" @click="modalInscribirAbierto = false">Cancelar</button>
-          <button type="submit" class="btn btn-primary" :disabled="inscribiendo || !clienteAInscribir">
+          <button type="submit" class="btn btn-primary" :disabled="inscribiendo || !clienteAInscribir || cupoCompleto">
             {{ inscribiendo ? "Inscribiendo..." : "Inscribir" }}
           </button>
         </div>

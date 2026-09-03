@@ -1,7 +1,10 @@
 <script setup>
 import { ref, computed, onMounted } from "vue";
 import apiGimnasio from "../../services/api-gimnasio.js";
+import { useGimnasioAuthStore } from "../../stores/gimnasioAuth.js";
 import GimnasioNav from "./GimnasioNav.vue";
+
+const auth = useGimnasioAuthStore();
 
 const clientes = ref([]);
 const cargando = ref(false);
@@ -10,7 +13,13 @@ const busqueda = ref("");
 
 const modalAbierto = ref(false);
 const guardando = ref(false);
-const nuevoCliente = ref({ nombre: "", telefono: "", email: "" });
+const esEdicion = ref(false);
+const clienteEditandoId = ref(null);
+const formCliente = ref({ nombre: "", telefono: "", email: "" });
+
+const modalEliminarAbierto = ref(false);
+const clienteParaEliminar = ref(null);
+const eliminando = ref(false);
 
 const clientesFiltrados = computed(() => {
   if (!busqueda.value.trim()) return clientes.value;
@@ -44,17 +53,60 @@ function estadoMembresia(cliente) {
   return { texto: "Activa", clase: "badge-success" };
 }
 
-async function crearCliente() {
+function abrirModalCrear() {
+  esEdicion.value = false;
+  clienteEditandoId.value = null;
+  formCliente.value = { nombre: "", telefono: "", email: "" };
+  modalAbierto.value = true;
+}
+
+function abrirModalEditar(cliente) {
+  esEdicion.value = true;
+  clienteEditandoId.value = cliente.id;
+  formCliente.value = {
+    nombre: cliente.nombre,
+    telefono: cliente.telefono || "",
+    email: cliente.email || "",
+  };
+  modalAbierto.value = true;
+}
+
+async function guardarCliente() {
   guardando.value = true;
+  error.value = "";
   try {
-    await apiGimnasio.post("/clientes", nuevoCliente.value);
+    if (esEdicion.value) {
+      await apiGimnasio.patch(`/clientes/${clienteEditandoId.value}`, formCliente.value);
+    } else {
+      await apiGimnasio.post("/clientes", formCliente.value);
+    }
     modalAbierto.value = false;
-    nuevoCliente.value = { nombre: "", telefono: "", email: "" };
     await cargarClientes();
   } catch (e) {
-    error.value = e.response?.data?.error ?? "No se pudo crear el cliente.";
+    error.value = e.response?.data?.error ?? "No se pudo guardar el cliente.";
   } finally {
     guardando.value = false;
+  }
+}
+
+function abrirModalEliminar(cliente) {
+  clienteParaEliminar.value = cliente;
+  modalEliminarAbierto.value = true;
+}
+
+async function eliminarCliente() {
+  if (!clienteParaEliminar.value) return;
+  eliminando.value = true;
+  error.value = "";
+  try {
+    await apiGimnasio.delete(`/clientes/${clienteParaEliminar.value.id}`);
+    modalEliminarAbierto.value = false;
+    clienteParaEliminar.value = null;
+    await cargarClientes();
+  } catch (e) {
+    error.value = e.response?.data?.error ?? "No se pudo eliminar el cliente.";
+  } finally {
+    eliminando.value = false;
   }
 }
 
@@ -74,7 +126,7 @@ onMounted(cargarClientes);
           placeholder="Buscar por nombre..."
           class="input input-bordered input-sm"
         />
-        <button class="btn btn-primary btn-sm" @click="modalAbierto = true">
+        <button class="btn btn-primary btn-sm" @click="abrirModalCrear">
           + Nuevo cliente
         </button>
       </div>
@@ -92,6 +144,7 @@ onMounted(cargarClientes);
           <tr>
             <th>Nombre</th>
             <th>Teléfono</th>
+            <th>Email</th>
             <th>Membresía</th>
             <th></th>
           </tr>
@@ -100,30 +153,45 @@ onMounted(cargarClientes);
           <tr v-for="c in clientesFiltrados" :key="c.id">
             <td>{{ c.nombre }}</td>
             <td>{{ c.telefono || "—" }}</td>
+            <td>{{ c.email || "—" }}</td>
             <td>
               <span class="badge" :class="estadoMembresia(c).clase">
                 {{ estadoMembresia(c).texto }}
               </span>
             </td>
             <td>
-              <div class="flex flex-col gap-1">
+              <div class="flex flex-wrap gap-1">
                 <router-link
                   :to="{ name: 'gimnasio-membresias', query: { clienteId: c.id } }"
                   class="link link-primary text-sm"
                 >
-                  Gestionar membresía
+                  Membresía
                 </router-link>
                 <router-link
                   :to="{ name: 'gimnasio-asistencia', query: { clienteId: c.id } }"
                   class="link link-primary text-sm"
                 >
-                  Inscribir a horario
+                  Horario
                 </router-link>
+                <button
+                  v-if="auth.rol === 'ADMIN'"
+                  class="link text-sm"
+                  @click="abrirModalEditar(c)"
+                >
+                  Editar
+                </button>
+                <button
+                  v-if="auth.rol === 'ADMIN'"
+                  class="link text-sm text-error"
+                  @click="abrirModalEliminar(c)"
+                >
+                  Eliminar
+                </button>
               </div>
             </td>
           </tr>
           <tr v-if="clientesFiltrados.length === 0">
-            <td colspan="4" class="text-center opacity-60 py-6">
+            <td colspan="5" class="text-center opacity-60 py-6">
               No hay clientes {{ busqueda ? "que coincidan" : "registrados" }}.
             </td>
           </tr>
@@ -132,24 +200,24 @@ onMounted(cargarClientes);
     </div>
   </div>
 
-  <!-- Modal: nuevo cliente -->
+  <!-- Modal: crear/editar cliente -->
   <dialog class="modal" :open="modalAbierto">
     <div class="modal-box">
-      <h3 class="font-bold text-lg mb-3">Nuevo cliente</h3>
-      <form @submit.prevent="crearCliente" class="flex flex-col gap-3">
+      <h3 class="font-bold text-lg mb-3">{{ esEdicion ? "Editar cliente" : "Nuevo cliente" }}</h3>
+      <form @submit.prevent="guardarCliente" class="flex flex-col gap-3">
         <input
-          v-model="nuevoCliente.nombre"
+          v-model="formCliente.nombre"
           required
           placeholder="Nombre completo"
           class="input input-bordered w-full"
         />
         <input
-          v-model="nuevoCliente.telefono"
+          v-model="formCliente.telefono"
           placeholder="Teléfono (opcional)"
           class="input input-bordered w-full"
         />
         <input
-          v-model="nuevoCliente.email"
+          v-model="formCliente.email"
           type="email"
           placeholder="Email (opcional)"
           class="input input-bordered w-full"
@@ -165,6 +233,28 @@ onMounted(cargarClientes);
       </form>
     </div>
     <form method="dialog" class="modal-backdrop" @click="modalAbierto = false">
+      <button>cerrar</button>
+    </form>
+  </dialog>
+
+  <!-- Modal: confirmar eliminación -->
+  <dialog class="modal" :open="modalEliminarAbierto">
+    <div class="modal-box">
+      <h3 class="font-bold text-lg mb-3">Eliminar cliente</h3>
+      <p class="mb-4">
+        ¿Estás seguro de eliminar a <strong>{{ clienteParaEliminar?.nombre }}</strong>?
+        Esta acción desactivará al cliente del sistema.
+      </p>
+      <div class="modal-action">
+        <button type="button" class="btn" @click="modalEliminarAbierto = false" :disabled="eliminando">
+          Cancelar
+        </button>
+        <button type="button" class="btn btn-error" @click="eliminarCliente" :disabled="eliminando">
+          {{ eliminando ? "Eliminando..." : "Eliminar" }}
+        </button>
+      </div>
+    </div>
+    <form method="dialog" class="modal-backdrop" @click="modalEliminarAbierto = false">
       <button>cerrar</button>
     </form>
   </dialog>
