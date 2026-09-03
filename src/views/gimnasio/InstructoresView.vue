@@ -12,8 +12,6 @@ const error = ref("");
 
 const modalInstructorAbierto = ref(false);
 const guardandoInstructor = ref(false);
-const esEdicion = ref(false);
-const instructorEditandoId = ref(null);
 const formInstructor = ref({
   nombre: "",
   email: "",
@@ -22,10 +20,6 @@ const formInstructor = ref({
   telefono: "",
   sueldoBase: "",
 });
-
-const modalEliminarAbierto = ref(false);
-const instructorParaEliminar = ref(null);
-const eliminando = ref(false);
 
 const instructorExpandidoId = ref(null);
 const bonosPorInstructor = ref({});
@@ -79,8 +73,6 @@ function toggleDetalle(instructor) {
 }
 
 function abrirModalCrear() {
-  esEdicion.value = false;
-  instructorEditandoId.value = null;
   formInstructor.value = {
     nombre: "",
     email: "",
@@ -92,21 +84,7 @@ function abrirModalCrear() {
   modalInstructorAbierto.value = true;
 }
 
-function abrirModalEditar(instructor) {
-  esEdicion.value = true;
-  instructorEditandoId.value = instructor.id;
-  formInstructor.value = {
-    nombre: instructor.usuario.nombre,
-    email: instructor.usuario.email || "",
-    password: "",
-    especialidad: instructor.especialidad || "",
-    telefono: instructor.telefono || "",
-    sueldoBase: instructor.sueldoBase || "",
-  };
-  modalInstructorAbierto.value = true;
-}
-
-async function guardarInstructor() {
+async function crearInstructor() {
   guardandoInstructor.value = true;
   error.value = "";
   try {
@@ -116,43 +94,13 @@ async function guardarInstructor() {
     } else {
       delete payload.sueldoBase;
     }
-    if (esEdicion.value) {
-      if (!payload.password) delete payload.password;
-      await apiGimnasio.patch(`/instructores/${instructorEditandoId.value}`, payload);
-    } else {
-      if (!payload.password) {
-        error.value = "La contraseña es requerida para nuevos instructores.";
-        return;
-      }
-      await apiGimnasio.post("/instructores", payload);
-    }
+    await apiGimnasio.post("/instructores", payload);
     modalInstructorAbierto.value = false;
     await cargarInstructores();
   } catch (e) {
-    error.value = e.response?.data?.error ?? "No se pudo guardar el instructor.";
+    error.value = e.response?.data?.error ?? "No se pudo crear el instructor.";
   } finally {
     guardandoInstructor.value = false;
-  }
-}
-
-function abrirModalEliminar(instructor) {
-  instructorParaEliminar.value = instructor;
-  modalEliminarAbierto.value = true;
-}
-
-async function eliminarInstructor() {
-  if (!instructorParaEliminar.value) return;
-  eliminando.value = true;
-  error.value = "";
-  try {
-    await apiGimnasio.delete(`/instructores/${instructorParaEliminar.value.id}`);
-    modalEliminarAbierto.value = false;
-    instructorParaEliminar.value = null;
-    await cargarInstructores();
-  } catch (e) {
-    error.value = e.response?.data?.error ?? "No se pudo eliminar el instructor.";
-  } finally {
-    eliminando.value = false;
   }
 }
 
@@ -235,12 +183,6 @@ onMounted(cargarInstructores);
                 {{ instructorExpandidoId === ins.id ? "Ocultar" : "Ver bonos/descuentos" }}
               </button>
               <template v-if="auth.rol === 'ADMIN'">
-                <button class="btn btn-ghost btn-sm" @click="abrirModalEditar(ins)">
-                  Editar
-                </button>
-                <button class="btn btn-ghost btn-sm text-error" @click="abrirModalEliminar(ins)">
-                  Eliminar
-                </button>
                 <button class="btn btn-outline btn-sm" @click="abrirModalMovimiento(ins, 'bono')">
                   + Bono
                 </button>
@@ -315,8 +257,8 @@ onMounted(cargarInstructores);
   <!-- Modal: crear/editar instructor -->
   <dialog class="modal" :open="modalInstructorAbierto">
     <div class="modal-box">
-      <h3 class="font-bold text-lg mb-3">{{ esEdicion ? "Editar instructor" : "Nuevo instructor" }}</h3>
-      <form @submit.prevent="guardarInstructor" class="flex flex-col gap-3">
+      <h3 class="font-bold text-lg mb-3">Nuevo instructor</h3>
+      <form @submit.prevent="crearInstructor" class="flex flex-col gap-3">
         <input
           v-model="formInstructor.nombre"
           required
@@ -333,9 +275,9 @@ onMounted(cargarInstructores);
         <input
           v-model="formInstructor.password"
           type="password"
-          :required="!esEdicion"
-          :minlength="esEdicion ? 0 : 6"
-          :placeholder="esEdicion ? 'Dejar vacío para no cambiar' : 'Contraseña inicial (mín. 6 caracteres)'"
+          required
+          minlength="6"
+          placeholder="Contraseña inicial (mín. 6 caracteres)"
           class="input input-bordered w-full"
         />
         <input
@@ -374,28 +316,6 @@ onMounted(cargarInstructores);
       class="modal-backdrop"
       @click="modalInstructorAbierto = false"
     >
-      <button>cerrar</button>
-    </form>
-  </dialog>
-
-  <!-- Modal: confirmar eliminación -->
-  <dialog class="modal" :open="modalEliminarAbierto">
-    <div class="modal-box">
-      <h3 class="font-bold text-lg mb-3">Eliminar instructor</h3>
-      <p class="mb-4">
-        ¿Estás seguro de eliminar a <strong>{{ instructorParaEliminar?.usuario?.nombre }}</strong>?
-        Esta acción desactivará al instructor del sistema.
-      </p>
-      <div class="modal-action">
-        <button type="button" class="btn" @click="modalEliminarAbierto = false" :disabled="eliminando">
-          Cancelar
-        </button>
-        <button type="button" class="btn btn-error" @click="eliminarInstructor" :disabled="eliminando">
-          {{ eliminando ? "Eliminando..." : "Eliminar" }}
-        </button>
-      </div>
-    </div>
-    <form method="dialog" class="modal-backdrop" @click="modalEliminarAbierto = false">
       <button>cerrar</button>
     </form>
   </dialog>
