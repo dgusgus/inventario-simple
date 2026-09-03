@@ -6,10 +6,16 @@ import { useGimnasioAuthStore } from "../../stores/gimnasioAuth.js";
 const auth = useGimnasioAuthStore();
 const route = useRoute();
 const router = useRouter();
-const menuRef = ref(null);
+
+// Controlamos el menú móvil nosotros mismos (no con <details>/DaisyUI)
+const menuAbierto = ref(false);
+
+function toggleMenu() {
+  menuAbierto.value = !menuAbierto.value;
+}
 
 function cerrarMenu() {
-  if (menuRef.value) menuRef.value.open = false;
+  menuAbierto.value = false;
 }
 
 // Secciones que van en la barra inferior móvil (las más usadas desde el celular)
@@ -44,32 +50,36 @@ function logout() {
 </script>
 
 <template>
-  <div class="sticky top-0 z-40 bg-base-100 shadow-md">
+  <div class="sticky top-0 z-[60] bg-base-100 shadow-md overflow-x-hidden">
     <!-- Header -->
     <div class="navbar">
-      <div class="flex-1 gap-2">
-        <details ref="menuRef" class="dropdown dropdown-end md:hidden">
-          <summary class="btn btn-ghost btn-circle">
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/>
-            </svg>
-          </summary>
-          <ul tabindex="0" class="menu dropdown-content bg-base-100 rounded-box shadow-lg w-56 mt-2">
-            <li><span class="menu-title">Módulo Gimnasio</span></li>
-            <li v-for="item in itemsMenu" :key="item.nombre">
-              <RouterLink :to="{ name: item.to }" :class="{ 'text-primary font-semibold': estaActivo(item.to) }" @click="cerrarMenu">
-                {{ item.label }}
-              </RouterLink>
-            </li>
-            <li v-if="auth.rol === 'ADMIN'">
-              <RouterLink :to="{ name: 'gimnasio-sueldos' }" :class="{ 'text-primary font-semibold': estaActivo('gimnasio-sueldos') }" @click="cerrarMenu">
-                Sueldos
-              </RouterLink>
-            </li>
-            <li class="menu-title mt-2">Sesión</li>
-            <li><button class="text-error" @click="logout">Cerrar sesión</button></li>
-          </ul>
-        </details>
+      <div class="flex-1 gap-2 relative">
+        <button type="button" class="btn btn-ghost btn-circle md:hidden" @click="toggleMenu">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/>
+          </svg>
+        </button>
+
+        <!-- Menú móvil: overlay + panel, controlado por menuAbierto -->
+        <div v-if="menuAbierto" class="fixed inset-0 z-[70] md:hidden" @click.self="cerrarMenu">
+          <div class="absolute top-14 left-2 bg-base-100 rounded-box shadow-lg w-56 border border-base-300">
+            <ul tabindex="0" class="menu">
+              <li><span class="menu-title">Módulo Gimnasio</span></li>
+              <li v-for="item in itemsMenu" :key="item.nombre">
+                <RouterLink :to="{ name: item.to }" :class="{ 'text-primary font-semibold': estaActivo(item.to) }" @click="cerrarMenu">
+                  {{ item.label }}
+                </RouterLink>
+              </li>
+              <li v-if="auth.rol === 'ADMIN'">
+                <RouterLink :to="{ name: 'gimnasio-sueldos' }" :class="{ 'text-primary font-semibold': estaActivo('gimnasio-sueldos') }" @click="cerrarMenu">
+                  Sueldos
+                </RouterLink>
+              </li>
+              <li class="menu-title mt-2">Sesión</li>
+              <li><button class="text-error" @click="logout">Cerrar sesión</button></li>
+            </ul>
+          </div>
+        </div>
 
         <RouterLink :to="{ name: 'gimnasio-clientes' }" class="font-semibold text-lg tracking-tight">
           Gimnasio
