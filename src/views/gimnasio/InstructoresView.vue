@@ -10,10 +10,11 @@ const instructores = ref([]);
 const cargando = ref(false);
 const error = ref("");
 
-// Modal: nuevo instructor (solo ADMIN)
 const modalInstructorAbierto = ref(false);
 const guardandoInstructor = ref(false);
-const nuevoInstructor = ref({
+const esEdicion = ref(false);
+const instructorEditandoId = ref(null);
+const formInstructor = ref({
   nombre: "",
   email: "",
   password: "",
@@ -22,18 +23,19 @@ const nuevoInstructor = ref({
   sueldoBase: "",
 });
 
-// Panel expandible: cuál instructor está abierto + sus bonos/descuentos
+const modalEliminarAbierto = ref(false);
+const instructorParaEliminar = ref(null);
+const eliminando = ref(false);
+
 const instructorExpandidoId = ref(null);
-const bonosPorInstructor = ref({}); // { [instructorId]: Bono[] }
-const descuentosPorInstructor = ref({}); // { [instructorId]: Descuento[] }
+const bonosPorInstructor = ref({});
+const descuentosPorInstructor = ref({});
 const cargandoDetalle = ref(false);
 
-// Modal: nuevo bono/descuento (solo ADMIN) — mismo modal para ambos,
-// "tipo" decide a qué endpoint pega
 const modalMovimientoAbierto = ref(false);
 const guardandoMovimiento = ref(false);
 const instructorParaMovimiento = ref(null);
-const tipoMovimiento = ref("bono"); // "bono" | "descuento"
+const tipoMovimiento = ref("bono");
 const nuevoMovimiento = ref({ monto: "", motivo: "" });
 
 async function cargarInstructores() {
@@ -76,31 +78,81 @@ function toggleDetalle(instructor) {
   }
 }
 
-async function crearInstructor() {
+function abrirModalCrear() {
+  esEdicion.value = false;
+  instructorEditandoId.value = null;
+  formInstructor.value = {
+    nombre: "",
+    email: "",
+    password: "",
+    especialidad: "",
+    telefono: "",
+    sueldoBase: "",
+  };
+  modalInstructorAbierto.value = true;
+}
+
+function abrirModalEditar(instructor) {
+  esEdicion.value = true;
+  instructorEditandoId.value = instructor.id;
+  formInstructor.value = {
+    nombre: instructor.usuario.nombre,
+    email: instructor.usuario.email || "",
+    password: "",
+    especialidad: instructor.especialidad || "",
+    telefono: instructor.telefono || "",
+    sueldoBase: instructor.sueldoBase || "",
+  };
+  modalInstructorAbierto.value = true;
+}
+
+async function guardarInstructor() {
   guardandoInstructor.value = true;
   error.value = "";
   try {
-    const payload = { ...nuevoInstructor.value };
+    const payload = { ...formInstructor.value };
     if (payload.sueldoBase) {
       payload.sueldoBase = Number(payload.sueldoBase);
     } else {
       delete payload.sueldoBase;
     }
-    await apiGimnasio.post("/instructores", payload);
+    if (esEdicion.value) {
+      if (!payload.password) delete payload.password;
+      await apiGimnasio.patch(`/instructores/${instructorEditandoId.value}`, payload);
+    } else {
+      if (!payload.password) {
+        error.value = "La contraseña es requerida para nuevos instructores.";
+        return;
+      }
+      await apiGimnasio.post("/instructores", payload);
+    }
     modalInstructorAbierto.value = false;
-    nuevoInstructor.value = {
-      nombre: "",
-      email: "",
-      password: "",
-      especialidad: "",
-      telefono: "",
-      sueldoBase: "",
-    };
     await cargarInstructores();
   } catch (e) {
-    error.value = e.response?.data?.error ?? "No se pudo crear el instructor.";
+    error.value = e.response?.data?.error ?? "No se pudo guardar el instructor.";
   } finally {
     guardandoInstructor.value = false;
+  }
+}
+
+function abrirModalEliminar(instructor) {
+  instructorParaEliminar.value = instructor;
+  modalEliminarAbierto.value = true;
+}
+
+async function eliminarInstructor() {
+  if (!instructorParaEliminar.value) return;
+  eliminando.value = true;
+  error.value = "";
+  try {
+    await apiGimnasio.delete(`/instructores/${instructorParaEliminar.value.id}`);
+    modalEliminarAbierto.value = false;
+    instructorParaEliminar.value = null;
+    await cargarInstructores();
+  } catch (e) {
+    error.value = e.response?.data?.error ?? "No se pudo eliminar el instructor.";
+  } finally {
+    eliminando.value = false;
   }
 }
 
@@ -150,7 +202,7 @@ onMounted(cargarInstructores);
       <button
         v-if="auth.rol === 'ADMIN'"
         class="btn btn-primary btn-sm"
-        @click="modalInstructorAbierto = true"
+        @click="abrirModalCrear"
       >
         + Nuevo instructor
       </button>
@@ -183,6 +235,12 @@ onMounted(cargarInstructores);
                 {{ instructorExpandidoId === ins.id ? "Ocultar" : "Ver bonos/descuentos" }}
               </button>
               <template v-if="auth.rol === 'ADMIN'">
+                <button class="btn btn-ghost btn-sm" @click="abrirModalEditar(ins)">
+                  Editar
+                </button>
+                <button class="btn btn-ghost btn-sm text-error" @click="abrirModalEliminar(ins)">
+                  Eliminar
+                </button>
                 <button class="btn btn-outline btn-sm" @click="abrirModalMovimiento(ins, 'bono')">
                   + Bono
                 </button>
@@ -193,7 +251,6 @@ onMounted(cargarInstructores);
             </div>
           </div>
 
-          <!-- Bonos y descuentos, expandible -->
           <div v-if="instructorExpandidoId === ins.id" class="mt-3 border-t pt-3 flex flex-col gap-4">
             <div v-if="cargandoDetalle" class="flex justify-center py-4">
               <span class="loading loading-spinner loading-sm"></span>
@@ -255,46 +312,46 @@ onMounted(cargarInstructores);
     </div>
   </div>
 
-  <!-- Modal: nuevo instructor -->
+  <!-- Modal: crear/editar instructor -->
   <dialog class="modal" :open="modalInstructorAbierto">
     <div class="modal-box">
-      <h3 class="font-bold text-lg mb-3">Nuevo instructor</h3>
-      <form @submit.prevent="crearInstructor" class="flex flex-col gap-3">
+      <h3 class="font-bold text-lg mb-3">{{ esEdicion ? "Editar instructor" : "Nuevo instructor" }}</h3>
+      <form @submit.prevent="guardarInstructor" class="flex flex-col gap-3">
         <input
-          v-model="nuevoInstructor.nombre"
+          v-model="formInstructor.nombre"
           required
           placeholder="Nombre completo"
           class="input input-bordered w-full"
         />
         <input
-          v-model="nuevoInstructor.email"
+          v-model="formInstructor.email"
           type="email"
           required
           placeholder="Email (para su login)"
           class="input input-bordered w-full"
         />
         <input
-          v-model="nuevoInstructor.password"
+          v-model="formInstructor.password"
           type="password"
-          required
-          minlength="6"
-          placeholder="Contraseña inicial (mín. 6 caracteres)"
+          :required="!esEdicion"
+          :minlength="esEdicion ? 0 : 6"
+          :placeholder="esEdicion ? 'Dejar vacío para no cambiar' : 'Contraseña inicial (mín. 6 caracteres)'"
           class="input input-bordered w-full"
         />
         <input
-          v-model="nuevoInstructor.especialidad"
+          v-model="formInstructor.especialidad"
           placeholder="Especialidad (opcional)"
           class="input input-bordered w-full"
         />
         <input
-          v-model="nuevoInstructor.telefono"
+          v-model="formInstructor.telefono"
           placeholder="Teléfono (opcional)"
           class="input input-bordered w-full"
         />
         <label class="form-control">
           <span class="label-text mb-1">Sueldo base (opcional, en Bs)</span>
           <input
-            v-model="nuevoInstructor.sueldoBase"
+            v-model="formInstructor.sueldoBase"
             type="number"
             step="0.01"
             min="0"
@@ -317,6 +374,28 @@ onMounted(cargarInstructores);
       class="modal-backdrop"
       @click="modalInstructorAbierto = false"
     >
+      <button>cerrar</button>
+    </form>
+  </dialog>
+
+  <!-- Modal: confirmar eliminación -->
+  <dialog class="modal" :open="modalEliminarAbierto">
+    <div class="modal-box">
+      <h3 class="font-bold text-lg mb-3">Eliminar instructor</h3>
+      <p class="mb-4">
+        ¿Estás seguro de eliminar a <strong>{{ instructorParaEliminar?.usuario?.nombre }}</strong>?
+        Esta acción desactivará al instructor del sistema.
+      </p>
+      <div class="modal-action">
+        <button type="button" class="btn" @click="modalEliminarAbierto = false" :disabled="eliminando">
+          Cancelar
+        </button>
+        <button type="button" class="btn btn-error" @click="eliminarInstructor" :disabled="eliminando">
+          {{ eliminando ? "Eliminando..." : "Eliminar" }}
+        </button>
+      </div>
+    </div>
+    <form method="dialog" class="modal-backdrop" @click="modalEliminarAbierto = false">
       <button>cerrar</button>
     </form>
   </dialog>
