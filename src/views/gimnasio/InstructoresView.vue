@@ -12,6 +12,8 @@ const error = ref("");
 
 const modalInstructorAbierto = ref(false);
 const guardandoInstructor = ref(false);
+const esEdicionInstructor = ref(false);
+const instructorEditandoId = ref(null);
 const formInstructor = ref({
   nombre: "",
   email: "",
@@ -20,6 +22,10 @@ const formInstructor = ref({
   telefono: "",
   sueldoBase: "",
 });
+
+const modalEliminarAbierto = ref(false);
+const instructorParaEliminar = ref(null);
+const eliminandoInstructor = ref(false);
 
 const instructorExpandidoId = ref(null);
 const bonosPorInstructor = ref({});
@@ -73,6 +79,8 @@ function toggleDetalle(instructor) {
 }
 
 function abrirModalCrear() {
+  esEdicionInstructor.value = false;
+  instructorEditandoId.value = null;
   formInstructor.value = {
     nombre: "",
     email: "",
@@ -84,7 +92,21 @@ function abrirModalCrear() {
   modalInstructorAbierto.value = true;
 }
 
-async function crearInstructor() {
+function abrirModalEditar(ins) {
+  esEdicionInstructor.value = true;
+  instructorEditandoId.value = ins.id;
+  formInstructor.value = {
+    nombre: ins.usuario.nombre,
+    email: ins.usuario.email,
+    password: "",
+    especialidad: ins.especialidad || "",
+    telefono: ins.telefono || "",
+    sueldoBase: ins.sueldoBase != null ? String(ins.sueldoBase) : "",
+  };
+  modalInstructorAbierto.value = true;
+}
+
+async function guardarInstructor() {
   guardandoInstructor.value = true;
   error.value = "";
   try {
@@ -94,13 +116,43 @@ async function crearInstructor() {
     } else {
       delete payload.sueldoBase;
     }
-    await apiGimnasio.post("/instructores", payload);
+    // Al editar el password es opcional; si viene vacío, se omite.
+    if (esEdicionInstructor.value && !payload.password) {
+      delete payload.password;
+    }
+    if (esEdicionInstructor.value) {
+      await apiGimnasio.patch(`/instructores/${instructorEditandoId.value}`, payload);
+    } else {
+      await apiGimnasio.post("/instructores", payload);
+    }
     modalInstructorAbierto.value = false;
     await cargarInstructores();
   } catch (e) {
-    error.value = e.response?.data?.error ?? "No se pudo crear el instructor.";
+    const accion = esEdicionInstructor.value ? "editar" : "crear";
+    error.value = e.response?.data?.error ?? `No se pudo ${accion} el instructor.`;
   } finally {
     guardandoInstructor.value = false;
+  }
+}
+
+function abrirModalEliminar(ins) {
+  instructorParaEliminar.value = ins;
+  modalEliminarAbierto.value = true;
+}
+
+async function eliminarInstructor() {
+  if (!instructorParaEliminar.value) return;
+  eliminandoInstructor.value = true;
+  error.value = "";
+  try {
+    await apiGimnasio.delete(`/instructores/${instructorParaEliminar.value.id}`);
+    modalEliminarAbierto.value = false;
+    instructorParaEliminar.value = null;
+    await cargarInstructores();
+  } catch (e) {
+    error.value = e.response?.data?.error ?? "No se pudo eliminar el instructor.";
+  } finally {
+    eliminandoInstructor.value = false;
   }
 }
 
@@ -144,7 +196,7 @@ onMounted(cargarInstructores);
 <template>
   <GimnasioNav />
 
-  <div class="max-w-4xl mx-auto px-4 pb-10">
+  <div class="max-w-4xl mx-auto px-4 pb-20 md:pb-10">
     <div class="flex flex-wrap gap-3 items-center justify-between mb-4">
       <h1 class="text-xl font-semibold">Instructores</h1>
       <button
@@ -183,11 +235,17 @@ onMounted(cargarInstructores);
                 {{ instructorExpandidoId === ins.id ? "Ocultar" : "Ver bonos/descuentos" }}
               </button>
               <template v-if="auth.rol === 'ADMIN'">
+                <button class="btn btn-outline btn-sm" @click="abrirModalEditar(ins)">
+                  Editar
+                </button>
                 <button class="btn btn-outline btn-sm" @click="abrirModalMovimiento(ins, 'bono')">
                   + Bono
                 </button>
                 <button class="btn btn-outline btn-sm" @click="abrirModalMovimiento(ins, 'descuento')">
                   + Descuento
+                </button>
+                <button class="btn btn-outline btn-sm text-error" @click="abrirModalEliminar(ins)">
+                  Eliminar
                 </button>
               </template>
             </div>
@@ -257,8 +315,10 @@ onMounted(cargarInstructores);
   <!-- Modal: crear/editar instructor -->
   <dialog class="modal" :open="modalInstructorAbierto">
     <div class="modal-box">
-      <h3 class="font-bold text-lg mb-3">Nuevo instructor</h3>
-      <form @submit.prevent="crearInstructor" class="flex flex-col gap-3">
+      <h3 class="font-bold text-lg mb-3">
+        {{ esEdicionInstructor ? "Editar instructor" : "Nuevo instructor" }}
+      </h3>
+      <form @submit.prevent="guardarInstructor" class="flex flex-col gap-3">
         <input
           v-model="formInstructor.nombre"
           required
@@ -275,9 +335,9 @@ onMounted(cargarInstructores);
         <input
           v-model="formInstructor.password"
           type="password"
-          required
-          minlength="6"
-          placeholder="Contraseña inicial (mín. 6 caracteres)"
+          :required="!esEdicionInstructor"
+          :minlength="6"
+          :placeholder="esEdicionInstructor ? 'Nueva contraseña (opcional, mínimo 6)' : 'Contraseña inicial (mín. 6 caracteres)'"
           class="input input-bordered w-full"
         />
         <input
@@ -315,6 +375,44 @@ onMounted(cargarInstructores);
       method="dialog"
       class="modal-backdrop"
       @click="modalInstructorAbierto = false"
+    >
+      <button>cerrar</button>
+    </form>
+  </dialog>
+
+  <!-- Modal: confirmar eliminación -->
+  <dialog class="modal" :open="modalEliminarAbierto">
+    <div class="modal-box">
+      <h3 class="font-bold text-lg mb-3">Eliminar instructor</h3>
+      <p class="mb-4">
+        ¿Estás seguro de eliminar a
+        <strong>{{ instructorParaEliminar?.usuario?.nombre }}</strong>?
+        Se conservará su historial de bonos, descuentos y pagos de sueldo,
+        pero dejará de aparecer en el sistema.
+      </p>
+      <div class="modal-action">
+        <button
+          type="button"
+          class="btn"
+          @click="modalEliminarAbierto = false"
+          :disabled="eliminandoInstructor"
+        >
+          Cancelar
+        </button>
+        <button
+          type="button"
+          class="btn btn-error"
+          @click="eliminarInstructor"
+          :disabled="eliminandoInstructor"
+        >
+          {{ eliminandoInstructor ? "Eliminando..." : "Eliminar" }}
+        </button>
+      </div>
+    </div>
+    <form
+      method="dialog"
+      class="modal-backdrop"
+      @click="modalEliminarAbierto = false"
     >
       <button>cerrar</button>
     </form>
