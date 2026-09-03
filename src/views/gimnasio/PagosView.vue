@@ -96,7 +96,7 @@ onMounted(cargarPagos);
 <template>
   <GimnasioNav />
 
-  <div class="max-w-5xl mx-auto px-4 pb-10">
+  <div class="max-w-5xl mx-auto px-4 pb-20 md:pb-10">
     <div class="flex flex-wrap items-center justify-between gap-3 mb-4">
       <h1 class="text-xl font-semibold">Historial de pagos</h1>
       <div class="flex gap-2">

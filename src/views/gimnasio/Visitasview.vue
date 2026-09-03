@@ -60,7 +60,7 @@ onMounted(cargarTodo);
 <template>
   <GimnasioNav />
 
-  <div class="max-w-2xl mx-auto px-4 pb-10 flex flex-col gap-6">
+  <div class="max-w-2xl mx-auto px-4 pb-20 md:pb-10 flex flex-col gap-6">
     <h1 class="text-xl font-semibold">Check-in</h1>
 
     <!-- Buscador + resultado -->

@@ -95,7 +95,7 @@ onMounted(cargarPlanes);
 <template>
   <GimnasioNav />
 
-  <div class="max-w-4xl mx-auto px-4 pb-10">
+  <div class="max-w-4xl mx-auto px-4 pb-20 md:pb-10">
     <div class="flex flex-wrap gap-3 items-center justify-between mb-4">
       <h1 class="text-xl font-semibold">Planes</h1>
       <button

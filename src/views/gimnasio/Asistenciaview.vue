@@ -171,7 +171,7 @@ watch([horarioId, fecha], cargarRoster);
 <template>
   <GimnasioNav />
 
-  <div class="max-w-4xl mx-auto px-4 pb-10 flex flex-col gap-4">
+  <div class="max-w-4xl mx-auto px-4 pb-20 md:pb-10 flex flex-col gap-4">
     <h1 class="text-xl font-semibold">Inscripciones y asistencia</h1>
 
     <div class="flex flex-wrap gap-3 items-end">

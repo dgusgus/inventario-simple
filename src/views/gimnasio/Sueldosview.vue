@@ -83,7 +83,7 @@ onMounted(cargarTodo);
 <template>
   <GimnasioNav />
 
-  <div class="max-w-4xl mx-auto px-4 pb-10 flex flex-col gap-8">
+  <div class="max-w-4xl mx-auto px-4 pb-20 md:pb-10 flex flex-col gap-8">
     <!-- Generar planilla -->
     <section class="card bg-base-100 shadow">
       <div class="card-body">
