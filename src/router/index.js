@@ -58,7 +58,7 @@ const routes = [
   {
     path: "/gimnasio/planes",
     name: "gimnasio-planes",
-    component: () => import("../views/gimnasio/PlanesView.vue"),
+    component: () => import("../views/gimnasio/Planesview.vue"),
     meta: { publica: true, requiereAuthGimnasio: true },
   },
   {
@@ -70,13 +70,13 @@ const routes = [
   {
     path: "/gimnasio/horarios",
     name: "gimnasio-horarios",
-    component: () => import("../views/gimnasio/HorariosView.vue"),
+    component: () => import("../views/gimnasio/Horariosview.vue"),
     meta: { publica: true, requiereAuthGimnasio: true },
   },
   {
     path: "/gimnasio/asistencia",
     name: "gimnasio-asistencia",
-    component: () => import("../views/gimnasio/AsistenciaView.vue"),
+    component: () => import("../views/gimnasio/Asistenciaview.vue"),
     meta: { publica: true, requiereAuthGimnasio: true },
   },
   {
@@ -94,13 +94,13 @@ const routes = [
   {
     path: "/gimnasio/visitas",
     name: "gimnasio-visitas",
-    component: () => import("../views/gimnasio/VisitasView.vue"),
+    component: () => import("../views/gimnasio/Visitasview.vue"),
     meta: { publica: true, requiereAuthGimnasio: true },
   },
   {
     path: "/gimnasio/sueldos",
     name: "gimnasio-sueldos",
-    component: () => import("../views/gimnasio/SueldosView.vue"),
+    component: () => import("../views/gimnasio/Sueldosview.vue"),
     meta: { publica: true, requiereAuthGimnasio: true },
   },
 ];
