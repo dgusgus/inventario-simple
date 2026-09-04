@@ -1,9 +1,13 @@
 <script setup>
+import { computed } from "vue";
 import { RouterView, RouterLink, useRoute } from "vue-router";
 import { useAuthStore } from "./stores/auth.js";
 
 const auth = useAuthStore();
 const route = useRoute();
+
+// True si estamos dentro del módulo gimnasio (rutas /gimnasio/*)
+const esRutaGimnasio = computed(() => route.name?.startsWith("gimnasio-"));
 </script>
 
 <template>
@@ -14,6 +18,17 @@ const route = useRoute();
     <div class="flex justify-between items-center p-4 gap-2">
       <span class="text-sm text-base-content/70 truncate">{{ auth.username }}</span>
       <div class="flex items-center gap-1 shrink-0">
+        <!-- Acceso al módulo Gimnasio -->
+        <RouterLink
+          :to="{ name: 'gimnasio-clientes' }"
+          class="btn btn-sm"
+          :class="esRutaGimnasio ? 'btn-neutral' : 'btn-ghost'"
+        >
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M6.5 6.5 17.5 17.5"/><path d="m21 21-1-1"/><path d="m3 3 1 1"/><path d="M18 22l4-4"/><path d="M2 6l4-4"/><path d="M3 10 7 6"/><path d="M14 21l3-3"/><path d="M5 8l3 3"/>
+          </svg>
+          <span class="hidden sm:inline">Gimnasio</span>
+        </RouterLink>
         <!-- Acceso a "Nuevo usuario": icono solo, para no competir con la navegación principal en mobile -->
         <RouterLink
           :to="{ name: 'nuevo-usuario' }"
